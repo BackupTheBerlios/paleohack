@@ -366,6 +366,27 @@ Fixed crash bug when you wield a dead cockatrice via inv-form menu.
 Dead cockatrice will now kill you when engraving w/o gloves.
 Dead cockatrice will now kill you when wielded and you remove your gloves.
 Tweaked phase-of-moon to match up with reality & hack a little better.
+----------
+SAT AUG 24
+----------
+...Checked everything in to Berlios.
+'COUNT':
+   hjklyubn *and* HJKLYUBN *and* fFmM are affected by count.  
+   '.' 's'
+   intriguingly, 't' (but it asks for object and direction each time)
+     but not 'e' or 'a'
+   intriguingly, 'r' and 'q' and 'd' (but it asks for object each time)
+    (one might THINK that '2d' would drop two of the stacked-item you select,
+    but to do that, you need to do 'd2' .... GAAAAAAH need count in inv!
+    you can't use a number with 'D' though.)
+   intriguingly, 'P' (up to 2) and 'R' (up to 2) but not 'w' or 'T' or 'W'.
+    Ahhh.  I have it.  Anything that coincidentally happens to set 'multi'
+    for its own purposes (like to make things take a while) can't repeat.
+   Inventory counts are allowed for:  "put in", "drop".
+----------
+WED AUG 28
+----------
+Added inventory count (in invaction form ONLY) for 'put in' and 'drop'.
 
 combining the preAugust and midAugust to-do lists:
 TO DO:  teleportation interacts poorly with 'more' mode......
@@ -380,7 +401,7 @@ TO DO:  teleportation interacts poorly with 'more' mode......
 	in tunnels.
    Bug: null pointer or something when you "float to ground" after levitate.
         ditto when you die of food poisoning non-immediately ?
-		hm, I died of food poisoning w/o crashing (8/18/02)
+		hm, I died of food poisoning w/o crashing (8/18/02)(8/23/02).
    Bug:	Sometimes get a memory error (in movemon()).
 		PH just read from memory location 0x7E7C, unallocated chunk.
 		I have moved movemon to the default code section, keep eye out.
@@ -390,11 +411,12 @@ TO DO:  teleportation interacts poorly with 'more' mode......
    Bug:	Sometimes you start out with NO DOG.  I think.
    x:   Check for things that are supposed to use {delay, nomul, spin_multi}
 	but don't yet due to laziness (like, 'W' was one til I fixed it).
+	Probably I should grep 'multi' linux-hack/*.c and check correspondence.
+		Need to test "stealarm" (steal.c)
    x:   I haven't tested the icebox in a long long time.  Looks like it works
         but its food preservation ability has never been confirmed by me.
-   Bug: Full-moon is "off by one" (a day late) with respect to linux hack:
-	Aug 23 doesn't get msg in Palm, does in linux.
-	Aug 24 gets msg in Palm.
+
+
 
 ON A RAINY DAY:	Colorize the Map screen
 		Add a confirmation popup "are you sure" to "Quit".

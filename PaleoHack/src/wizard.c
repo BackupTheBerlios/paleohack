@@ -131,6 +131,7 @@ void inrange(monst_t *mtmp)
 	case 0:
 	  /* create a nasty monster from a deep level */
 	  /* (for the moment, 'nasty' is not implemented) */
+	  // (The above comment is original to Hack 1.0.3 so I ain't fixing it)
 	  makemon(NULL, you.ux, you.uy);
 	  break;
 	case 1:

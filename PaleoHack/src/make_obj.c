@@ -117,6 +117,8 @@ obj_t * mksobj(Short otyp)
       otmp->spe = rnd(...);
 #endif NOT_YET_IMPLEMENTED
     */
+    // It was on fire when I lay down on it (it was commented in Hack 1.0.3.)
+    //
     /* fall into next case */
   case GEM_SYM:
     otmp->quantity = rund(6) ? 1 : 2;

@@ -282,7 +282,6 @@ void specify_what(UChar c)
     message(ScratchBuffer);
     show_messages();
     if (0 == FrmCustomAlert(MonsterInfoP, buf, NULL, NULL))
-      //      message("not implemented yet");
       FrmHelp(MAGIC_STRING_NUMBER + c); // XXX DANGEROUS KLUDGE-MAGIC.
     // (If someone messes up the space-at-end-of-'buf' markers and
     // PaleoHack hallucinates that there is a Magic String where none

@@ -369,7 +369,7 @@ Boolean hit_you(monst_t *mtmp, Short dam) // was hitu
   }
   tmp += mtmp->data->mlevel;
 
-  // if (multi < 0) tmp += 4; /* XXXXX Decrease AC when you can't move
+  if (multi < 0) tmp += 4; /* XXXXX Decrease AC when you can't move
   /* XXXXX Ooops.  I took out all the negative multi's.  Need them back! */
 
   if ((Invis && mtmp->data->mlet != 'I') ||

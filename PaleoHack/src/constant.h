@@ -253,4 +253,7 @@
 #define HW_findChr     7
 
 
+// for repeating commands
+#define MAX_COUNT 999
+
 #include "hack.onames.h" // hack.onames.h is untouched by me.

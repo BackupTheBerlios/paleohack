@@ -313,7 +313,7 @@ Boolean dopay()
   monst_t *shkp;
   Short pass, tmp;
 
-  multi = 0;// XXXXX
+  multi = 0;
   inshop();
   for (shkp = fmon ; shkp ; shkp = shkp->nmon)
     if ((shkp->bitflags & M_IS_SHOPKEEPER) && dist(shkp->mx,shkp->my) < 3)

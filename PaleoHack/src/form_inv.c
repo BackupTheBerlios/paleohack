@@ -45,9 +45,13 @@ static void dwimify_buttons(FormPtr frm, Short item) SEC_2;
 static Boolean match_and_fire(FormPtr frm, Word lst_i, Char c, Short num_btns) SEC_4;
 static Boolean already_in_use(obj_t *otmp, Char *word) SEC_4;
 static Boolean skip_this_item(obj_t *otmp) SEC_4;
+static void invact_set_title(FormPtr frm, UShort ctr) SEC_5;
+static obj_t *invact_split(obj_t *otmp) SEC_5;
+static Boolean invact_count_handler(Char c, UShort *ctr) SEC_5;
+
 
 typedef struct getobj_info_s {
-  UChar allowcnt; // 0, 1, 2.
+  UShort allowcnt; // 0, 1, 2.
   Boolean allowgold;
   Boolean allowall;
   Boolean allownone;
@@ -86,6 +90,7 @@ Boolean Inv_Form_HandleEvent(EventPtr e)
     //    show_weight();
     // /*    show_invbtns = SHOW_DEFAULT; */
     dwimify_buttons(frm, inventory_item);
+    getobj_info.allowcnt = 0; // (if dropping, drop the whole stack)
     handled = true;
     break;
     
@@ -401,6 +406,8 @@ static Boolean perform_action(FormPtr frm, Word lst_i, obj_t *otmp,
     //      flags.move = multi = 0;
     free_inventory_select(frm);
     LeaveForm();
+    if (getobj_info.allowcnt > 0)
+      otmp = invact_split(otmp);
     put_in_ice_box(otmp); // returns true if we actually did something.
     // in hack, messing with the ice box actually always takes time,
     // even if we dn't do anything.
@@ -412,14 +419,18 @@ static Boolean perform_action(FormPtr frm, Word lst_i, obj_t *otmp,
 }
 
 
+
 static Boolean handle_invbtn_drop(Word lst_i)
 {
   obj_t *otmp;
+  Short cnt = getobj_info.allowcnt - 1;
   //  Word curfrm = FrmGetActiveFormID();
 
   if (inventory_item != -1) {
     //    free_inventory_select(frm);
     if ((otmp = get_nth_item(inventory_item))) { // BUG if this isn't true..
+      if (getobj_info.allowcnt > 0)
+	otmp = invact_split(otmp);
       drop(otmp);
       show_messages(); // 'drop' probably printed a message
       dropped_something = true;
@@ -941,6 +952,19 @@ static void update_ia_btns(FormPtr frm)
 }
 
 
+static void invact_set_title(FormPtr frm, UShort ctr)
+{
+  Char c;
+  StrNCopy(ScratchBuffer, getobj_info.word, 14);
+  ScratchBuffer[14] = '\0';
+  if (ctr > 0)
+    StrPrintF(ScratchBuffer+StrLen(ScratchBuffer), " %d", ctr);
+  StrCat(ScratchBuffer, " what?");
+  if ((c = ScratchBuffer[0]) >= 'a' && c <= 'z')
+    ScratchBuffer[0] = c + ('A' - 'a');
+  FrmCopyTitle(frm, ScratchBuffer);
+}
+
 Boolean InvAction_Form_HandleEvent(EventPtr e)
 {
   Boolean handled = false;
@@ -963,10 +987,7 @@ Boolean InvAction_Form_HandleEvent(EventPtr e)
     show_inven(frm, lst, true);
     inventory_item = inv_display_ix[0];
     LstSetSelection(lst, 0);
-    StrPrintF(ScratchBuffer, "%s what?", getobj_info.word);
-    if ((c = ScratchBuffer[0]) >= 'a' && c <= 'z')
-      ScratchBuffer[0] = c + ('A' - 'a');
-    FrmCopyTitle(frm, ScratchBuffer);
+    invact_set_title(frm, 0);
     FrmDrawForm(frm);
     update_ia_btns(frm);
     handled = true;
@@ -990,6 +1011,16 @@ Boolean InvAction_Form_HandleEvent(EventPtr e)
     // hardware button -- or else graffiti.
     frm = FrmGetActiveForm();
     lst = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, list_iaf));
+    if (getobj_info.allowcnt > 0) {
+      // grab some numbers for use with 'drop' or 'put in'
+      if (IS_NUMERIC(e->data.keyDown.chr, getobj_info.allowcnt-1 )) {
+	invact_count_handler(e->data.keyDown.chr,
+			     &(getobj_info.allowcnt));
+	invact_set_title(frm, getobj_info.allowcnt-1);
+	handled = true;
+	break;
+      }
+    }
     switch(e->data.keyDown.chr) {
     case pageUpChr:
       if (LstScrollList(lst, winUp, 10)) {//  10 items visible at a time
@@ -1148,7 +1179,7 @@ Boolean getobj_init(Char *let, Char *word, UChar action)
   getobj_info.allowgold = false;
   getobj_info.allowall = false;
   getobj_info.allownone = false;
-  if (*let == '0') let++, getobj_info.allowcnt = 1;
+  if (*let == '0') let++, getobj_info.allowcnt = 1; // ACT_{DROP,REFRIGERATE}
   if (*let == '$') let++, getobj_info.allowgold = true;
   if (*let == '#') let++, getobj_info.allowall = true;
   if (*let == '-') let++, getobj_info.allownone = true;
@@ -1179,6 +1210,34 @@ Boolean getobj_init(Char *let, Char *word, UChar action)
 }
 
 
+static obj_t *invact_split(obj_t *otmp)
+{
+  Short cnt = getobj_info.allowcnt - 1;
+  if (cnt > 0) {	// cnt given
+    if (cnt < otmp->quantity) {
+      obj_t *leftover;
+      leftover = splitobj(otmp, (Short) cnt);
+      if (otmp == uwep) setuwep(leftover);
+    }
+  }
+  return otmp;
+}
+
+static Boolean invact_count_handler(Char c, UShort *ctr)
+{
+  Short n = *ctr - 1;
+  if ('0' <= c && c <= '9') {
+    Short incr = c - '0';
+    if (n <= 0)        n = incr;
+    else if (n <= (MAX_COUNT/10))  n = n * 10 + incr;
+    else               n = MAX_COUNT; /* maxed-out */
+  } else if (8 == c || 127 == c) {   // backspace (BS), delete (DEL)
+    n = n / 10; // yay integer division.
+  }
+  *ctr = n + 1;
+  return true;
+  // caller will change title of the form.
+}
 
 
 Boolean show_getobj()

@@ -981,6 +981,15 @@ static void xor_directional()
 
 
 
+void count_message(Char *buf)
+{
+  Short i;
+  i = command_count;
+  message(buf);
+  command_count = i;
+}
+
+
 void level_message(Char *buf)
 {
   RectangleType r;

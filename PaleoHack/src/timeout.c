@@ -16,9 +16,9 @@ void timeout()
   if (Stoned) stoned_dialogue();
   for (upp = you.uprops ; upp < you.uprops+SIZE(you.uprops) ; upp++)
     if ((upp->p_flags & TIMEOUT) && !--upp->p_flags) {
-      if (false) ; //if (upp->p_tofn) (*upp->p_tofn)(); // XXXX not implemented yet!!!!!!
+      if (false) ; //if (upp->p_tofn) (*upp->p_tofn)(); // instead, we call float_down directly:
       else switch(upp - you.uprops) {
-      case (PROP(RIN_LEVITATION)): // XXXX in place of tofn
+      case (PROP(RIN_LEVITATION)): // we're calling this in place of p_tofn.
 	float_down();
 	break;
       case STONED:

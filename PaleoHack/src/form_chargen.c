@@ -449,6 +449,7 @@ void init_player()
   flags.ident = 1; // initialize the "monster uid" counter
 
   init_objects(); // this is not fully implemented yet: won't randomize "descr"
+  // (isn't it, now, though?)
 
   init_by_class();// u_init(); -- make sure we are not missing any of this now!
   mklev(); // need to DEBUG: this has "impossible mkobj" sometimes...

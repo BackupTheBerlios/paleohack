@@ -197,8 +197,8 @@ tri_val_t do_drink(obj_t *otmp)
     else
       nothing = true;
     Levitation += rnd(100);
-    //    you.uprops[PROP(RIN_LEVITATION)].p_tofn = float_down; // XXXXXX
-    // it has been replaced by tweaking timeout.c to call float_down directly.
+    //    you.uprops[PROP(RIN_LEVITATION)].p_tofn = float_down; // UNNEEDED,
+    // it has been replaced by tweaking timeout.c to call float_down directly!
     break;
   default:
     StrPrintF(ScratchBuffer, "What a funny potion! (%u)", otmp->otype);

@@ -34,6 +34,10 @@ void init_player();
 #define DIST(x1,y1,x2,y2) (((x1)-(x2))*((x1)-(x2)) + ((y1)-(y2))*((y1)-(y2)))
 #define letter(c) (('@' <= (c) && (c) <= 'Z') || ('a' <= (c) && (c) <= 'z'))
 #define is_alpha(c) (((c) >= 'A' && (c) <= 'Z') || ((c) >= 'a' && (c) <= 'z'))
+/* For Count Command: 0-9, backspace (BS), delete (DEL) */
+// modification: don't accept a LEADING '0'.
+#define IS_NUMERIC(ch,ctr) ((  (( (ctr) > 0 && '0' <= (ch)) || '1' <= (ch))      && (ch) <= '9') || 8 == (ch) || 127 == (ch))
+
 
 // util.c
 Boolean hit_button_if_usable(FormPtr frm, Word btn_index);
@@ -105,6 +109,7 @@ void draw_directional();
 void undraw_directional();
 
 //
+void count_message(Char *buf);
 void level_message(Char *buf);
 void message(const Char *buf);
 void alert_message(Char *buf);

@@ -23,6 +23,7 @@ DmOpenRef phScoreDB = NULL;
 Boolean Version_GE_OS35 = false; // (is OS version >= 3.5)
 Boolean death = false;
 extern Short multi; // living in movesee.c right now..
+extern Short command_count; // in display.c
 
 
 void move_visible_window(Short left_x, Short top_y, Boolean center);//display.c
@@ -30,6 +31,7 @@ void move_visible_window(Short left_x, Short top_y, Boolean center);//display.c
 
 extern Boolean came_from_generation;
 
+static Boolean count_handler(Char c);
 static Boolean convert_to_dir(Short x, Short y, Short ignore_center);
 static Boolean convert_char_to_dir(Char d);
 static Boolean do_command(Char com_val);
@@ -92,6 +94,7 @@ void bump_state()
   ps->item = NULL;
   ps->mon = NULL;
   ps->count = 0;
+  if (multi > 0) multi = 0; // XXXX is this ok in all cases? unsure.
   ps->spell = -1;
 }
 
@@ -274,6 +277,8 @@ void end_turn_start_turn()
 
 //void test_findname();
 void draw_tombstone();
+
+
 Boolean Main_Form_HandleEvent(EventPtr e)
 {
   Boolean handled = false, valid = false;
@@ -380,6 +385,7 @@ Boolean Main_Form_HandleEvent(EventPtr e)
     switch (e->eType) {
     case menuEvent:
       MenuEraseStatus(NULL);
+      if (multi > 0) multi = 0;
       switch(e->data.menu.itemID) {
       case menu_mainAbout: FrmPopupForm(AboutForm);   return true;
       case menu_mainMap:   FrmPopupForm(MapForm);     return true;
@@ -389,10 +395,8 @@ Boolean Main_Form_HandleEvent(EventPtr e)
 	FrmPopupForm(MsgLogForm);
 	return true;
       case menu_mainScores:
-	//	message("not implemented yet");
-	//	show_messages();
 	FrmPopupForm(TombstoneForm);
-	// Seems to work ok even (yea if there are no scores yet.)
+	// Seems to work ok even (yea even if there are no scores yet.)
 	// The most recent score will be highlighted.
 	return true;
       case menu_mainHelp:
@@ -466,7 +470,7 @@ Boolean Main_Form_HandleEvent(EventPtr e)
 	      // will pop up a form!
 	      return true;
 	}
-	curr_state.count = /*command_count = */0;
+	curr_state.count = /*command_count = */ 0;
 	break;
       }
       handled = true;
@@ -476,17 +480,21 @@ Boolean Main_Form_HandleEvent(EventPtr e)
     case keyDownEvent:
       if (message_clear(false)) {
 	show_messages();
-	//    command_count = 0; // I do need this - it just doesn't exist yet
+	//command_count = 0; // I do need this - it just doesn't exist yet
+	if (multi > 0) multi = 0;
 	return true;
       }
       c = e->data.keyDown.chr;
-      handled = do_command(c); // XXXX This needs fixed!
-      //    if (handled && !free_turn_flag) command_count = 0; // XXX
-      //    else { ... } // Just swipe all that from kMoria, I wrote it anyway.
-      if (!handled)
-	if (do_inv_command(c))
-	  // will pop up a form!
-	  return true;
+      if (IS_NUMERIC(c,curr_state.count)) {
+	handled = count_handler(c);
+	multi = curr_state.count;// command_count = curr_state.count; //xxx
+      } else {
+	handled = do_command(c);
+	if (!handled) 
+	  if (do_inv_command(c)) // may pop up a form - DON'T take turn
+	    return true;
+	if (multi > 0) multi = 0;
+      }
       break;
 
     case penDownEvent:
@@ -533,6 +541,33 @@ Boolean Main_Form_HandleEvent(EventPtr e)
 }
 
 /*****************************************************************************/
+static Boolean count_handler(Char c)
+{
+  Char buf[16];
+  Short n = curr_state.count;
+  took_time = false;
+  if ('0' <= c && c <= '9') {
+    Short incr = c - '0';
+    if (n <= 0)        n = incr;
+    else if (n <= (MAX_COUNT/10))  n = n * 10 + incr;
+    else               n = MAX_COUNT; /* maxed-out */
+    StrPrintF(buf, "count: %d", n);
+    count_message(buf);
+  } else if (8 == c || 127 == c) {   // backspace (BS), delete (DEL)
+    n = n / 10; // yay integer division.
+    if (n) {
+      StrPrintF(buf, "count: %d", n);
+      count_message(buf);
+    } else {
+      // what did I have this line for?:
+      //      print_stats(STATS_WORD); // maybe this will erase it
+      curr_state.mode = MODE_DEFAULT;
+    }
+  }
+  curr_state.count = n;
+  return true;
+}
+/*****************************************************************************/
 static Boolean do_command(Char com_val)
 {
   Boolean handled = true;
@@ -554,13 +589,19 @@ static Boolean do_command(Char com_val)
     took_time = false;
     break;
   case 's':
-    do_search(); // need to make this take a count_command..
+    do {
+      do_search();
+      tick();
+    } while (--multi > 0);
+    multi = 0;
+    bump_state(); // need this since we didn't call end_turn_start_turn
+    took_time = false; // cause we already called tick
     break;
   case 'h': case 'j': case 'k': case 'l':
   case 'y': case 'u': case 'b': case 'n':
     // Hey.  If m: flags.run = 1 and flags.nopick = 1;
     // also, don't forget about possibility of command_count
-    if (flags.run) do_multi_move();
+    if (flags.run || multi > 0) do_multi_move();
     else {
       took_time = do_move(); // XXX sometimes do_move crashes.. reading from unalocated chunk of memory... basically, when you fall through a trap door before it draws the next level.
       check_rogue_position(false);
@@ -607,6 +648,12 @@ static Boolean do_command(Char com_val)
     break;
   case '.':
     message("resting");
+    do {
+      tick();
+    } while (--multi > 0);
+    multi = 0;
+    bump_state(); // need this since we didn't call end_turn_start_turn
+    took_time = false; // cause we already called tick
     break;
   case ',':
     // oh man, I know people are going to ask for button/key bindings here..
@@ -803,7 +850,7 @@ static void do_multi_move()
   // sigh.
   // 'multi' is a flag that says "what we're doing will take multiple turns".
   // it's used for stuff besides moving, too.  maybe should be command_count!
-  multi = MAX_RUN;
+  if (multi <= 0) multi = MAX_RUN;
   if (!flags.run) flags.run = 3;//1;
   do {
     took_time = do_move(); // might call nomul.
@@ -816,6 +863,7 @@ static void do_multi_move()
     // is that what flags.mv is for or something else.
   } while (--multi > 0 /*&& flags.mv*/);
   flags.mv = flags.run = multi = 0;
+  bump_state(); // need this since we didn't call end_turn_start_turn
   took_time = false; // cause we already called tick
 }
 
@@ -1022,7 +1070,7 @@ static Boolean buttonsHandleEvent(EventPtr e)
       // Act like keyDownEvent in Main_Form_HandleEvent
       if (message_clear(false)) {
 	show_messages();
-	//    command_count = 0; // I do need this - it just doesn't exist yet
+	//command_count = 0; // I do need this - it just doesn't exist yet
 	return true;
       }
       handled = do_command(command);

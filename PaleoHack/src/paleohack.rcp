@@ -173,7 +173,7 @@ USABLE
 MODAL
 DEFAULTBTNID btn_ia_cancel
 BEGIN
-  TITLE "(use or apply) what?"
+  TITLE "(use or apply) 999 what?"
   LIST "foo" "bar" "baz" ID list_iaf AT (0 15 156 110)
 
   BUTTON "use or apply" ID btn_ia_frob AT (3 141 AUTO AUTO) NONUSABLE
