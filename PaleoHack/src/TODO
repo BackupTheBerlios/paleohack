@@ -198,9 +198,10 @@ TO DO:  teleportation interacts poorly with 'more' mode......
 	look at all the inv actions, make sure they take turn/don't, properly.
 	also make sure they print msgs promptly (something wasn't..)
 	game crashed if killed by eel? fix this.
-	Need top ten list.
+	Need top ten list.  ok, need it to be printed by "High Scores" menu.
 	Need 'count' (e.g. "99." SHOULD rest for 99 turns).
 	when you're in invform, and the dog moves, it is drawn THERE! eek.
+		FIXED, aug 10 2002.
         Add preferences/hardwarebutton forms to configure my_prefs values.
    Bug: It doesn't remember what part of the level I've seen, when
         I exit the app and return to it (and probably ascending/descending),
@@ -208,15 +209,26 @@ TO DO:  teleportation interacts poorly with 'more' mode......
      Also, an old '@' is printed in some place you were a few moves back.
         and the monsters and the little dog are all in old places too.  GAR.
         This is way screwy.
+		FIXED, aug 10 2002.
         Wonder if it is related to levels being created with cruft in walls.
+		<PROBABLY NOT.>
    Bug: 'take off' is completely screwy.
    Bug: null pointer or something when you "float to ground" after levitate.
         ditto when you die of food poisoning non-immediately ?
 
 
+need to make "losestr()" beep.  done.
 
-
-need to make "losestr()" beep.
-
-btw, unix.c has a Y2K bug (in getdate() and a few places in end.c,
+btw, in Hack, unix.c has a Y2K bug (in getdate() and a few places in end.c,
 it saves a formerly-6-character date in 'record' file.)
+
+
+BACK TO THE OLD GRINDSTONE Sat Aug 10 2002
+------------------------------------------
+I hacked the things that call put_char_at so they print only in MainForm.
+   If any forms other than InvForm take time, might need to refresh()
+   after calling LeaveForm.  Keep an eye out.
+Fixed "dropping" (from 'i', 'd', and 'D') so that it takes 0 or 1 turns.
+Fixed the savelevel amnesia!
+	simple fix: tell start_savelev to DELETE the old record. duh.
+	(it was leaving the original record for the level.  bah.)

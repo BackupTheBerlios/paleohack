@@ -11,6 +11,7 @@
 //Boolean just_throwing = false; // for entering this form via 't' (throw)
 extern previous_state curr_state;
 
+Boolean dropped_something;
 
 Short inventory_item;
 Char **inventory_display;
@@ -73,6 +74,7 @@ Boolean Inv_Form_HandleEvent(EventPtr e)
     /* ...init form... */
     inventory_item = -1;
     inventory_display = NULL;
+    dropped_something = false;
     lst = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, list_if));
     show_inven(frm, lst, false);
     //    show_extra_inv_btns = false;
@@ -406,8 +408,10 @@ static Boolean handle_invbtn_drop(Word lst_i)
 
   if (inventory_item != -1) {
     //    free_inventory_select(frm);
-    if ((otmp = get_nth_item(inventory_item))) // BUG if this isn't true..
+    if ((otmp = get_nth_item(inventory_item))) { // BUG if this isn't true..
       drop(otmp);
+      dropped_something = true;
+    }
     //    show_inven(frm);
     //    LstDrawList(FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, list_if)));
     //    dwimify_buttons(frm, inventory_item);
@@ -446,6 +450,11 @@ static Boolean handle_invbtn_cancel()
   //  lst = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, list_if));
   free_inventory_select(frm);
   LeaveForm();
+  if (dropped_something) {
+    took_time = true;
+    end_turn_start_turn();
+  }
+  refresh(); // xxx in case time passed and dog moved
   //  show_messages(); // because time passed
   //  refresh(false); // because creatures may have moved
   //  just_throwing = false;
@@ -935,6 +944,7 @@ Boolean InvAction_Form_HandleEvent(EventPtr e)
     /* ...init form... */
     inventory_item = -1;
     inventory_display = NULL;
+    dropped_something = false;
     lst = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, list_iaf));
     show_inven(frm, lst, true);
     inventory_item = inv_display_ix[0];
@@ -1034,7 +1044,14 @@ Boolean InvAction_Form_HandleEvent(EventPtr e)
     frm = FrmGetActiveForm();
     switch(e->data.ctlSelect.controlID) {
     case btn_ia_frob:
+      {
+	ControlPtr btn;
+	btn = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, btn_ia_cancel));
+	CtlSetLabel(btn, "Done");
+	CtlShowControl(btn);    
+      }
       handled = handle_invbtn_frob(frm, list_iaf, false);
+      if (handled) dropped_something = true; // xxx make it tick
       break;
     case btn_ia_all:
       //      handled = handle_invact_all();
@@ -1043,10 +1060,14 @@ Boolean InvAction_Form_HandleEvent(EventPtr e)
       handled = handle_invact_none();
       break;
     case btn_ia_cancel:
-      // may need to take a turn in some cases
+      // if took time, take ONE turn.
       handled = true;
       free_inventory_select(frm);
       LeaveForm();
+      if (dropped_something) {
+	took_time = true;
+	end_turn_start_turn();
+      }
       break;
     }
 

@@ -14,7 +14,7 @@
 // Anything marked CONST is already in the const database.
 // Anything marked REC is already in the save database
 // Anything marked SCRATCH isn't saved and doesn't need saving
-// Anything marked OK currently gets saved and restored
+// Anything marked OK currently gets saved and restored  (may be in level.c)
 // (some other things might also be scratch that aren't marked yet.)
 // Ok
 // Now consult the old save.c in the original hack, see what it saves.
@@ -120,7 +120,8 @@ Boolean dosave() // was dosave0
   if (flags.moon_phase == FULL_MOON)	/* ut-sally!fletcher */
     you.uluck--;			/* and unido!ab */
   // "savelev" will write to a separate record!
-  savelev(dlevel, true);
+
+  savelev(dlevel, true); // xxx
 
   rec_size += 2*sizeof(Int8) + 2*sizeof(UShort);
   rec_size += sizeof(you_t);

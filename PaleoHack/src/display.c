@@ -349,6 +349,8 @@ void refresh() // formerly known as docrt()
   Short v_w = itsy_on ? visible_w_itsy : visible_w;
   UChar info;
 
+  if (FrmGetActiveFormID() != MainForm) return; // XXX
+
   if (you.uswallow) {
     swallowed();
     return;
@@ -392,6 +394,8 @@ void nscr()
   Short x_abs, y_abs, col, line;
   Short v_h = itsy_on ? visible_h_itsy : visible_h;
   Short v_w = itsy_on ? visible_w_itsy : visible_w;
+
+  if (FrmGetActiveFormID() != MainForm) return; // XXX
   // XXX flags.nscrinh is used only in goto_level()  ..will need it though.
   if (you.uswallow || you.ux == FAR /*|| flags.nscrinh*/) return;
 #ifdef I_AM_OS_2
@@ -434,6 +438,8 @@ void animate_char(Short y, Short x, Char c, Boolean bold)
   Short row, col, ch;
   Short v_h = itsy_on ? visible_h_itsy : visible_h;
   Short v_w = itsy_on ? visible_w_itsy : visible_w;
+
+  if (FrmGetActiveFormID() != MainForm) return; // XXX
 
   if (y < visible_y || x < visible_x ||
       y >= visible_y + v_h || x >= visible_x + v_w)
@@ -575,6 +581,7 @@ void swallowed()
 {
   // needs testing .... also, find out what this really looks like in unix.
   Short line, col, dy, dx, i = 0;
+  if (FrmGetActiveFormID() != MainForm) return; // XXX
   clear_visible();
 #ifdef I_AM_OS_2
   if (itsy_on) FntSetFont(ledFont);

@@ -287,6 +287,7 @@ Boolean Main_Form_HandleEvent(EventPtr e)
     reset_state(&curr_state);
     frm = FrmGetActiveForm();
     FrmDrawForm(frm);
+    //    clear_visible();
     if (came_from_generation) {
       init_player();
     } else {
@@ -414,6 +415,9 @@ Boolean Main_Form_HandleEvent(EventPtr e)
 	  return true;
 	}
       case menu_mainRedraw:
+	// xxx
+	savelev(dlevel, true);
+	getlev(dlevel, true);
 	move_visible_window(you.ux, you.uy, true);
 	refresh();
 	return true;
@@ -550,6 +554,10 @@ static Boolean do_command(Char com_val)
   case 'T':
     if (getobj_init("[", "take off", ACT_AOFF))
       FrmPopupForm(InvActionForm);
+    else {
+      message("Not wearing any armor.");
+      took_time = false;
+    }
     break;
   case ')':
     message("list currently wielded weapon...");

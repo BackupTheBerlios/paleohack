@@ -64,7 +64,8 @@ void savelev(Short lev, Boolean not_bones)
   if (lev < 0 || lev > MAXLEVEL) return;
 
   if (not_bones) { // open record to write a gamesave level
-    vh = start_savelev(lev, &rec_i, REC_LEVEL_START, phSaveDB, false);
+    //    vh = start_savelev(lev, &rec_i, REC_LEVEL_START, phSaveDB, false);
+    vh = start_savelev(lev, &rec_i, REC_LEVEL_START, phSaveDB, true);
     if (vh) level_exists[lev] = true;
     else {
       // some old debugging stuff....
@@ -152,16 +153,27 @@ static VoidHand start_savelev(Short lev, UInt *rec_i, Short start_i,
     if (recp) {
       if (recp[0] >= lev) { // we'll insert new record at this index
 	found = true;
+	//	WinDrawChars("found", 5, 0, 0);
 	*rec_i = i;
-	if (recp[0] == lev) replace = true; // need to delete this record first
+	if (recp[0] == lev) {
+	  replace = true; // need to delete this record first
+	  //	  WinDrawChars("replace", 7, 0, 11);
+	}
       }
     }
     MemHandleUnlock(vh);
   }
   if (!found) *rec_i = max_rec;
   else if (replace) {
-    if (delete_old) DmRemoveRecord(db, *rec_i);
-    else return NULL;
+    if (delete_old) {
+      WinDrawChars("replace", 7, 40, 11);
+      DmRemoveRecord(db, *rec_i);
+    } else {
+      WinDrawChars("nul", 3, 0, 11);
+      return NULL;
+    }
+  } else {
+      WinDrawChars("moo", 3, 0, 11);
   }
 
   // Allocate space for the level.  I wonder how much we need.

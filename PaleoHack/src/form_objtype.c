@@ -26,7 +26,7 @@ Boolean ObjType_Form_HandleEvent(EventPtr e)
   Boolean handled = false;
   FormPtr frm;
   ControlPtr pushbtn;
-  Short btn_i, i, j;
+  Short btn_i, i, j, total;
   Char *tmp, selected_symbols[NUM_OBJ_SYMBOLS+1];
     
   switch (e->eType) {
@@ -60,9 +60,15 @@ Boolean ObjType_Form_HandleEvent(EventPtr e)
 	}
       }
       LeaveForm();
-      ggetobj_end(selected_symbols, drop_not_identify,
+      total = ggetobj_end(selected_symbols, drop_not_identify,
 	  (droppable[NUM_OBJ_SYMBOLS-1] && selected[NUM_OBJ_SYMBOLS-1]), // a
 	  (droppable[NUM_OBJ_SYMBOLS-2] && selected[NUM_OBJ_SYMBOLS-2]) ); // u
+      if (total && drop_not_identify) {
+	extern Boolean took_time;
+	void end_turn_start_turn(); // in main.c
+	took_time = true;
+	end_turn_start_turn();
+      }
       handled = true;
       break;
     case btn_ot_cancel:

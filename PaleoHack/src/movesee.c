@@ -822,6 +822,7 @@ void losestr(Short num)
     you.uhpmax -= 6;
   }
   flags.botl |= (BOTL_STR | BOTL_HP);
+  do_feep(400, 9);
 }
 
 
