@@ -1,0 +1,32 @@
+PaleoHack is copyright (C) 2001 Bridget Spitznagel
+                                and Stichting Mathematisch Centrum.
+(Hack 1.0.3 is (C) 1985 Stichting Mathematisch Centrum, Amsterdam.)
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+The Hack 1.0.3 license:
+
+  Unchanged source and source changed to adapt the game to a changing
+  environment (operating system, libraries, compiler) may be freely
+  distributed.
+
+This is the only license under which PaleoHack can be distributed!
+
+The license can't be changed for any part of the original Hack code!
+So I can't grant permission for you to make a variant of Hack.
+
+However, I will let anyone reuse any PalmOS-specific part of the code
+that _I_ wrote, under the MIT/BSD/X11 licenses.  If you are porting
+something else to PalmOS, that is probably the only part of the code
+you would be interested in anyway.
+
+If you have any questions about this, just ask me.
+
+Disclaimer:
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

@@ -1,0 +1,184 @@
+SUBSTITUTIONS
+-------------
+rn2(x) == rund(x) (it does a %x)
+rn1(x,y) == rund(x)+y
+rnd(x) == rnd(x)  (it does a %x + 1)
+d(n,x) rolls <n>d<x> dice  == dice(n,x)
+
+"index" == strchr
+           CharPtr StrChr(CharPtr str, Int chr);
+           return ptr to first occurence or NULL if not found.
+"rindex" == strrchr, which doesn't exist here.
+            (supposed to find last occurence in string).
+            see my_rindex in util.c .... sigh...
+
+THINGS THAT ARE COMPLETE
+------------------------
+make_level.c DONE
+     level making is done; many functions elsewhere were dummied though.
+     As I implement them, I move their declarations in prototypes.h to SEC_1.
+make_maze DONE
+    I checked the iterative revision to make sure BIGNUM is big enough.
+ *new high level goal: getting "stuff that init_character calls" to work.
+ *new HLG: screen drawing code.
+The screen draws when you start the game.
+    (some of the drawing code, like for zapping and fancy stuff, is still AWOL)
+ *new HLG: the walking-around-i.e.-not-into-walls code
+You can walk around in a rudimentary way now, one square at a time.
+    After you can walk around in the dungeon by yourself, I will work on
+    monsters, objects, inventory, etc. which are all nasty listses.  gollum.
+    so, I think I will have to leave most of the listy things as lists.
+    this disturbs me a little because (1) leaks would be real bad and
+    (2) the heap is pretty small, even without leaks it might not work.
+    12K-36K for all globals + malloced stuff.  Oh, well, let's try it
+    leaving mallocs alone.  The alternative is stuffing them into the DB.
+ *new HLG: create the "const" database.  this is in ./WriteDatabase/
+Your inventory is created at startup.
+You can view it in the inventory form.
+    Also, DON'T FORGET TO write something in lock.c that will randomize
+    the descr strings (just swap their offsets around) -- for init_objects().
+Monsters are created at startup.
+Monsters are printed.
+    however, something is a bit odd: when you get to a new unprinted screen,
+    monsters are printed, but when you get to their room, the room writes over
+    them(?) and you do not get to see them.
+    hm maybe if I uncomment the rest of ridiculous_code().
+    ah, that fixed monsters not being seen but does NOT fix monsters being
+    seen already BEFORE i get to their room.  probably something else is
+    commented out causing this.  oh yeah EVEN IF YOU'RE BLIND.
+    also note that I can currently walk THROUGH monsters because the move
+    code is partly commented-out.  and boulders too.
+* * *  time passes (it's now August 2001)
+Author has been contacted to confirm the (unchangeable alas) license terms.
+    ok to port; can't make the game easier or harder.
+You can run in addition to walking.
+    oh, also I stuffed the uprops in to 'you'.
+You can search.
+    it works for doors and corridors.
+How difficult would "picking up objects" be?...
+  *random weird little bugs: A [] (unprintable char) was printed in a
+   corridor.  It can't be walked on.  I wonder what it is.
+  *new HLG: the stuff in do_move that until now has been skipped.
+You can pick stuff up.
+   it tries to pick up the boulders too.
+You can drop stuff.
+   can't select "how many" to drop though.
+The right labels get put on the Do The Right Thing button in inventory.
+You can hit a letter in the inv form to select that item...
+You can wear and unwear armor.
+You can wield and unwield weapons.
+You can wear and unwear rings.
+    I have NOT tested effects - some aren't implemented yet..
+You can eat things in inventory and on the ground.
+    It took me longer to get tins working but eventually I did.
+You can quaff potions.
+    I have NOT tested effects - some aren't implemented yet..
+    note for blindness: you can see where you've been while blind??? interestig
+You can, mostly, read a scroll.
+    I have NOT tested effects - some aren't implemented yet..
+*I was fixing things that needed aobjnam
+*I made a 'ScratchBuffer' that people can write to RIGHT BEFORE message.
+*I fixed-up "name known" for object class: use BIT{SET,TEST} on oc_name_known
+You can zap wands
+    I have NOT tested effects - some aren't implemented yet..
+----
+---- some remaining candidates for getting put in:
+----  // dotrap, inshop.  these are quite long.
+----
+---- Hm, how about apply.c? that's one remaining ACT_foo...
+----
+---- busy fixing up camera in apply.c...
+----
+* * *  time passes (it's now January 2002)
+       Damned if I can remember what I was doing last (in any detail, that is)
+       I've imported into *local* CVS and hope to get going again.
+  *New HLG: make more of do_apply work...
+You can apply a camera.
+    The 'animation' works.  The finding/blinding of a monster is untested.
+You can open a tin!  It takes time properly and everything; I think.
+    (I got onto this from 'apply' canopener, which, trivially, works.)
+You could probably use a (reg. or magic) whistle, but it hasn't been tested!!
+    (need to have the little dog around, and moving?, and a whistle)
+You can use the pickaxe.  It works!
+    (and yes, it is correct behavior that you can dig a pit on the stairs)
+    You CAN'T select an item to put in the icebox yet.
+  *New HLG: Stuff that's marked as "not yet implemented" in prototypes.h
+  *New HLG: Files that are in the DUMMIES section of the Makefile.
+   I have stuffed in quite a bit more.  I lost track of what exactly though.
+You can attack monsters now!  And they can move and attack you!
+   But sometimes the game crashes with bus error.  sigh.
+Now vault.c is code-complete! But wholly untested!!!
+All of do_move() exists now.  Untested addition: moving boulders, ball + chain.
+YOU CAN ENGRAVE NOW.
+some more things I could do: interface for the menu items in form_inv.
+I stuffed in almost all of shk.c, and added make_shop
+* * *
+ * * *
+* * *  time passes (it's now March 2002)
+       Once again I have no idea what I was up to.
+Fixed a minor bug in use of exclaim() (returns %c not %s, for StrPrintF)
+I turned on "cansee" and it might be behaving correctly now.
+I fixed gem creation so that they are not 'glorkum' anymore.
+I have been adding verb-commands that pop up a filtered inventory form
+  - OK: apply, drop, eat, quaff, read, wield, engrave, zap, put on, name, call!
+  - throw and wear don't even let you get out of the form.  oops.
+    dip does nothing, which is not surprising, it's not implemented yet.
+    (remove-ring doesn't even try to pop up a form yet)
+  - we'll need this form for identify, and it needs to *count* number of uses.
+  Maybe (for some verbs, the multi-per-turn verbs) Cancel should be Done
+Added shopkeeper names to the database; seems to work.
+Implemented the "show discovered stuff". (formerly called "dodiscovered")
+The potion/scroll/etc names get shuffled in init_objects now.
+And the "call" record gets erased at the same point.
+The user name (plname) is set to hotsync name by default.
+You can now wish for objects!  (if wand of wishing worked.)  via menu hack.
+Scroll of genocide seems ok, still needs some work though
+     the form should check whether it's a valid monster & disallow "Ok" if not.
+     check in the use of fut_geno[] vs. genocided[]... what's the second one?
+Camera flash should work now (had a 0x8000 flag on UChar! should be 0x80.)
+Fortune cookies have fortunes now!
+     if they take up exactly two lines, it will print -more-, argh.
+     my long-message-dividing scheme probably isn't working quite perfectly.
+Horizontal walls don't keep redrawing now :)
+You can go up and down levels now, but it doesn't save them.
+The guard in the vault will ask who you are using engrave form (untested)
+Hey! Watch out for ESHK(...) in shk.c, target might be null.
+The move-without-pickup 'm' and 'M' should work now..
+You can switch to Itsy font.
+You can save and restore!!!!! Sometimes it even works!!!!!
+ (note, saving is not idempotent: it frees stuff. don't use for checkpointing!)
+  (note also, saving worms is NOT IMPLEMENTED yet!)
+Dungeon levels are saved/restored as you ascend/descend the stairs!
+You can die now!
+ But there is no top-ten score list yet.
+  When you die, it should be saving a bones file.  Haven't tested loading yet!
+
+
+TO DO:  need an interface for assigning a name to individual monsters
+        need identify scroll... it will ident up to 4 items, I think?
+        need throw...
+	fix bug: some Scroll msgs (before 'call') get show_message'd TOO much
+	test the vault query (croesus)
+	saving and restoring of worms is NOT IMPLEMENTED YET.
+
+   I'm getting errors sometimes (reading an unallocated chunk) when going
+      down stairs... (with a clean slate, a newbie that never saved/restored.)
+   sometimes do_move crashes.. reading from unalocated chunk of
+      memory... basically, when you fall through a trap door before it
+      draws the next level.  The resulting level has occasional
+      characters that, well, just don't belong.  like % embedded in a
+      wall, or the Empty Rectangle character in a passage.
+   TO DO: debug that.
+
+
+
+fix timing here:
+ quaff potion
+ (monsters visible) <-- ah.. we're in SenseForm here?
+ tap
+(screen is cleared) --> we left SenseForm?
+ tap
+ "You sense the presence of monsters. the vision fades."
+Something doesn't seem quite right here :)
+(Also, when you genocide a monster, it doesn't redraw til next tap, and stuff.
+I expect there are many "taking-a-turn is screwy" problems like this.)

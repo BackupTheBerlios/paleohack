@@ -1,0 +1,279 @@
+//********************************************************************
+// paleohack - Hack 1.0.3 for PalmOS.                                *
+// This file is copyright (C) 2001 Bridget Spitznagel                *
+//********************************************************************/
+
+#include "paleohackRsc.h"
+
+VERSION ID 1 "0.01"
+
+ICONFAMILY "paleohack.bmp" "" "" "paleohackC.bmp" TRANSPARENT 255 255 255
+SMALLICONFAMILY "paleohackSmall.bmp" "" "" "paleohackSmallC.bmp" TRANSPARENT 255 255 255
+
+BITMAP ID bitmap_ph "paleohack.bmp"
+BITMAP ID bitmap_cat   "hdse.bmp"
+
+FONT ID ItsyFont FONTID 129 "Font56.txt"
+
+//MENUID MainFormMenu
+FORM ID MainForm AT (0 0 160 160)
+USABLE
+NOFRAME
+MENUID MainFormMenu
+BEGIN
+    GRAFFITISTATEINDICATOR AT (150 150)
+END
+
+MENU ID MainFormMenu
+BEGIN
+    PULLDOWN "Blah"
+    BEGIN
+        MENUITEM "About PaleoHack"       ID menu_mainAbout
+        MENUITEM "Map"       ID menu_mainMap "M"
+	MENUITEM "Message Log   "          ID menu_mainMsgs "L"
+	MENUITEM "Font   "          ID menu_mainFont "F"
+        MENUITEM "Quit"      ID menu_mainQuit
+        MENUITEM "Redraw"      ID menu_mainRedraw
+        MENUITEM "Test stuff"      ID menu_mainTest
+        MENUITEM "Wish!"      ID menu_mainWiz1
+    END
+    PULLDOWN "Blah"
+    BEGIN
+	MENUITEM "(i)      Inventory..." ID  menu_cmd_i
+    END
+END
+
+
+FORM ID MapForm AT (0 0 160 160)
+USABLE
+NOFRAME
+BEGIN
+END
+
+FORM ID TombstoneForm AT (0 0 160 160)
+USABLE
+NOFRAME
+BEGIN
+END
+
+FORM ID Chargen1Form AT (0 0 160 160)
+USABLE
+DEFAULTBTNID btn_cg1_no
+BEGIN
+  TITLE "Welcome to PaleoHack"
+  LABEL "Are you an experienced player?" AUTOID AT (0 40)
+  BUTTON "Yes" ID btn_cg1_yes AT (60 PrevBottom+10 40 25)
+  BUTTON "No" ID btn_cg1_no AT (PrevLeft PrevBottom+10 PrevWidth PrevHeight)
+  BUTTON "Ok" ID btn_cg1_ok AT (5 131 PrevWidth PrevHeight) NONUSABLE
+END
+  //BUTTON "Ok" ID btn_cg1_ok AT (5 141 35 AUTO) NONUSABLE // 14 high?
+
+FORM ID Chargen2Form AT (0 0 160 160)
+USABLE
+BEGIN
+  TITLE "Tell me..."
+  LABEL "... what kind of character you are." AUTOID AT (0 20)
+  LABEL "Are you a:" AUTOID AT (0 70)
+  BUTTON "Tourist" ID btn_cg2_1 AT (1 PrevBottom+10 42 25)
+  BUTTON "Speleologist" ID btn_cg2_2 AT (PrevRight+5 PrevTop 64 PrevHeight)
+  BUTTON "Fighter" ID btn_cg2_3 AT (PrevRight+5 PrevTop 42 PrevHeight)
+  BUTTON "Knight" ID btn_cg2_4 AT (1 PrevBottom+5 42 PrevHeight)
+  BUTTON "Cave-person" ID btn_cg2_5 AT (PrevRight+5 PrevTop 64 PrevHeight)
+  BUTTON "Wizard" ID btn_cg2_6 AT (PrevRight+5 PrevTop 42 PrevHeight)
+END
+
+FORM ID AboutForm AT (2 2 156 156)
+USABLE
+MODAL
+DEFAULTBTNID btn_about_ok
+BEGIN
+	TITLE "About PaleoHack"
+	FORMBITMAP AT (8 19) BITMAP bitmap_cat
+	FORMBITMAP AT (98 15) BITMAP bitmap_ph
+	LABEL "PaleoHack v0.01" AUTOID AT (84 40)
+	LABEL "A clone of" AUTOID AT (PrevLeft PrevTop+11)
+	LABEL "Andries Brouwer's" AUTOID AT (PrevLeft PrevTop+11)
+	LABEL "Hack 1.0.3" AUTOID AT (PrevLeft PrevTop+11)
+
+	LABEL "Bugs?  Contact:" AUTOID AT (Center 95)
+	LABEL "Bridget Spitznagel" AUTOID AT (Center PrevTop+11)
+        LABEL "i0lanthe@yahoo.com" AUTOID AT (Center PrevTop+11)
+	BUTTON "Done" ID btn_about_ok AT (5 141 35 AUTO)
+	BUTTON "License" ID btn_about_license AT (50 141 AUTO AUTO)
+	BUTTON "History" ID btn_about_credits AT (PrevRight+10 141 AUTO AUTO)
+END
+
+
+FORM ID InvActionForm AT (2 2 156 156)
+USABLE
+MODAL
+DEFAULTBTNID btn_ia_cancel
+BEGIN
+  TITLE "(use or apply) what?"
+  LIST "foo" "bar" "baz" ID list_iaf AT (0 15 156 110)
+
+  BUTTON "use or apply" ID btn_ia_frob AT (3 141 AUTO AUTO) NONUSABLE
+  BUTTON "None" ID btn_ia_none AT (PrevRight+5 PrevTop AUTO PrevHeight)
+      NONUSABLE
+  BUTTON "All" ID btn_ia_all AT (PrevLeft PrevTop PrevWidth PrevHeight)
+      NONUSABLE
+  BUTTON "Cancel" ID btn_ia_cancel AT (109 PrevTop 42 PrevHeight)
+      NONUSABLE
+END
+// Hope we don't need NONE and ALL at the same time.
+
+
+FORM ID InvForm AT (2 2 156 156)
+USABLE
+MODAL
+MENUID InvFormMenu
+DEFAULTBTNID btn_if_cancel
+BEGIN
+  TITLE "Your Inventory"
+  LIST "foo" "bar" "baz" ID list_if AT (0 15 156 110)
+
+  BUTTON "quaff" ID btn_if_frob AT (3 141 29 AUTO) NONUSABLE
+  BUTTON "drop" ID btn_if_drop AT (PrevRight+5 PrevTop PrevWidth PrevHeight)
+      NONUSABLE
+  BUTTON "throw" ID btn_if_throw AT (PrevRight+5 PrevTop PrevWidth PrevHeight)
+      NONUSABLE
+  BUTTON "Done" ID btn_if_cancel AT (PrevRight+5 PrevTop 31 PrevHeight)
+  BUTTON "[E]" ID btn_if_extra AT (PrevRight+3 PrevTop 16 PrevHeight) NOFRAME
+      NONUSABLE
+END
+//BUTTON "[E]" ID btn_if_eq AT (PrevRight+3 PrevTop 16 PrevHeight) NOFRAME
+// hm... these btns are 14 pix high including the border...
+// 14 white pixels between btn and list...
+// and btns are 2 pixels above bottom of screen.  hm.
+// and list is 2 pixels below top of screen.
+//
+// Hey, I could change E into a popup "filter by type" thingy.
+
+MENU ID InvFormMenu
+BEGIN
+    PULLDOWN "Extras"
+    BEGIN
+        MENUITEM "Dip it"       ID menu_invDip "D"
+        MENUITEM "Name it"       ID menu_invName "N"
+        MENUITEM "Call its type"      ID menu_invCall "C"
+        MENUITEM "Wield"      ID menu_invWield "W"
+        MENUITEM "Engrave with"      ID menu_invEngrave "E"
+    END
+END
+
+
+
+FORM ID EngraveForm AT (2 63 156 95)
+USABLE
+MODAL
+BEGIN
+	TITLE "Engrave     "
+
+	FIELD ID field_sb AT (20 PrevTop 130 11) EDITABLE UNDERLINED SINGLELINE MAXCHARS 40
+
+    GRAFFITISTATEINDICATOR AT (146 85)
+	BUTTON "Ok" ID btn_sb_ok AT (5 78 AUTO AUTO)
+	BUTTON "Cancel" ID btn_sb_cancel AT (PrevRight+5 PrevTop AUTO AUTO)
+END
+//	LABEL "Inscription:" AUTOID AT (23 59)
+//	FIELD ID field_sb AT (PrevRight+2 PrevTop 80 11) EDITABLE UNDERLINED SINGLELINE MAXCHARS 12
+
+
+FORM ID MsgLogForm AT (2 2 156 156)
+USABLE
+MODAL
+DEFAULTBTNID btn_ml_ok
+BEGIN
+   TITLE "Message Log  "
+   FIELD ID field_ml AT (5 15 146 121) NONEDITABLE MULTIPLELINES MAXCHARS 2048
+   REPEATBUTTON "\001" ID repeat_ml_up AT (144 140 10 AUTO) NOFRAME FONT 5 
+   REPEATBUTTON "\002" ID repeat_ml_down AT (144 148 10 AUTO) NOFRAME FONT 5 
+   BUTTON "Done" ID btn_ml_ok AT (5 140 37 AUTO)
+END
+
+
+
+FORM ID SnowCrashForm AT (0 0 160 160)
+USABLE
+MODAL
+BEGIN
+ TITLE "PaleoHack can't run"
+END
+
+FORM ID SenseForm AT (0 0 160 160)
+USABLE
+NOFRAME
+BEGIN
+END
+
+
+// hm, I bet that 4 buttons WILL NOT FIT.
+// Whoa!  They do, but the last two look a lot like an afterthought.
+// good enough for jazz...
+ALERT ID PickUpThisP
+CONFIRMATION
+DEFAULTBUTTON PICKUP_QUIT
+BEGIN
+	TITLE "[ynaq]"
+	MESSAGE "^1 ^2?"
+	BUTTON "Yes" "No" "All" "Quit"
+END
+
+ALERT ID IceBoxP
+CONFIRMATION
+DEFAULTBUTTON 1
+BEGIN
+	TITLE "Ice-box"
+	MESSAGE "Do you want to ^1 something ^2 the ice-box?"
+	BUTTON "Ok" "Cancel"
+END
+
+ALERT ID RightLeftP
+CONFIRMATION
+DEFAULTBUTTON 0
+BEGIN
+	TITLE "Right or left?"
+	MESSAGE "Which ring-finger?"
+	BUTTON "Right" "Left"
+END
+
+ALERT ID EatFloorP
+CONFIRMATION
+DEFAULTBUTTON 1
+BEGIN
+	TITLE "Eat this?"
+	MESSAGE "There ^1 ^2 here; eat ^3"
+	BUTTON "Ok" "Cancel"
+END
+
+ALERT ID NameCallP
+CONFIRMATION
+DEFAULTBUTTON 1
+BEGIN
+	TITLE "Name or call?"
+	MESSAGE "Do you want to name an individual object?"
+	BUTTON "Yes" "No"
+END
+
+
+
+STRING LicenseStr "Hack 1.0.3 is © 1985 Andries Brouwer, Stichting "\
+                  "Mathematich Centrum (Amsterdam);\n"\
+                  "PaleoHack v 0.01 is "\
+                  "© 2001 Andries Brouwer, Stichting "\
+                  "Mathematich Centrum, Bridget Spitznagel.\n"\
+                  "Hack License:\n"\
+                  "Unchanged source and source changed to adapt it to "\
+                  "a changing environment (operating system, libraries, "\
+                  "compiler, etc) may be freely distributed.\n"\
+                  "This means:"\
+		  "Porting changes may be made to Hack, but not gameplay "\
+                  "changes."
+
+STRING CreditStr "Hack has been around since 1985.(?)  "\
+		"The original version of Hack was written by Jay Fenlason "\
+		"with help from Kenny Woodland, Mike Thome, and Jon Payne.  "\
+		"Andries Brouwer did a near-total rewrite, culminating in "\
+		"version 1.0.3 (for UNIX), of which PaleoHack is a clone.  "\
+		"(Hack 1.0.3 was then ported, modified, ported, merged, "\
+		"expanded, rewritten, debugged, and became... Nethack.)"

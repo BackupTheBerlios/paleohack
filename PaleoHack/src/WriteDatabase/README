@@ -1,0 +1,4 @@
+The def files are used to create the gen files.  I write def files.
+'make' writes gen files.
+The write files are used to create the database.  I write write files.
+They use gen files.  Run the executable to build the database!
