@@ -175,6 +175,8 @@ Boolean check_do_engrave()
 		    aobjnam(otmp, "weld"),
 		    (otmp->quantity == 1) ? "itself" : "themselves");
 	  message(ScratchBuffer);
+	} else if (oops_cockatrice(otmp)) {
+	  return false; // you are now dead
 	} else {
 	  StrPrintF(ScratchBuffer, "You now wield %s.", doname(otmp));
 	  message(ScratchBuffer);

@@ -370,6 +370,7 @@ typedef struct HackPreferenceType_s
   Boolean relative_move;
   Boolean sound;
   Boolean run;
+  Boolean overlay_circles;
   //  Boolean auto_pickup;
   Boolean black_bg;
   Boolean color_on;

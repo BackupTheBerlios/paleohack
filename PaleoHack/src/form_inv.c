@@ -7,6 +7,8 @@
 //#include "lock-externs.h"
 #include "paleohackRsc.h"
 
+extern Short msglog_mode; // just for show msgs
+
 // flotsam from kMoria:
 //Boolean just_throwing = false; // for entering this form via 't' (throw)
 extern previous_state curr_state;
@@ -234,6 +236,10 @@ Boolean Inv_Form_HandleEvent(EventPtr e)
     case menu_invEngrave:
       handle_inv_engrave();
       break;
+    case menu_invMsgs:
+      msglog_mode = SHOW_MSGLOG;
+      FrmPopupForm(MsgLogForm);
+      break;
     }
     handled = true;
     break;
@@ -260,7 +266,9 @@ static obj_t * get_nth_item(Short n)
 static void refresh_inv(Word lst_i)
 {
   ListPtr lst;
-  FormPtr frm = FrmGetActiveForm();
+  FormPtr frm;
+  if (you.dead) return; // in case of cockatrice-wielding.
+  frm = FrmGetActiveForm();
   lst = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, lst_i));
   free_inventory_select(frm);
   show_inven(frm, lst, false);
@@ -310,21 +318,24 @@ static Boolean perform_action(FormPtr frm, Word lst_i, obj_t *otmp,
   case ACT_AOFF: 
     if (ia) LeaveForm();
     *worked = do_remove_armor(otmp);
+    if (*worked) took_time = true; // xxx
     if (ia) { end_turn_start_turn(); return true; }
     break;
   case ACT_ROFF:
-    if (ia) LeaveForm();
-    *worked = do_remove_ring(otmp);
+    if (ia) LeaveForm(); // hmmm actually can this ever be from InvActionForm??
+    *worked = do_remove_ring_helper(otmp);
     if (ia) { end_turn_start_turn(); return true; }
     break;
   case ACT_AWEAR: //
     if (ia) LeaveForm();
     *worked = do_wear_armor(otmp);
+    if (*worked) took_time = true; // xxx
     if (ia) { end_turn_start_turn(); return true; }
     break;
   case ACT_RWEAR: //
     if (ia) LeaveForm();
     *worked = do_wear_ring(otmp);
+    if (*worked) took_time = true; // xxx
     if (ia) { end_turn_start_turn(); return true; }
     break;
     // Next the ones that ALWAYS exit:
@@ -404,12 +415,13 @@ static Boolean perform_action(FormPtr frm, Word lst_i, obj_t *otmp,
 static Boolean handle_invbtn_drop(Word lst_i)
 {
   obj_t *otmp;
-  Word curfrm = FrmGetActiveFormID();
+  //  Word curfrm = FrmGetActiveFormID();
 
   if (inventory_item != -1) {
     //    free_inventory_select(frm);
     if ((otmp = get_nth_item(inventory_item))) { // BUG if this isn't true..
       drop(otmp);
+      show_messages(); // 'drop' probably printed a message
       dropped_something = true;
     }
     //    show_inven(frm);
@@ -453,10 +465,12 @@ static Boolean handle_invbtn_cancel()
   if (dropped_something) {
     took_time = true;
     end_turn_start_turn();
+  } else {
+    tock();
+    // need the refresh in case time passed and the dog moved;
+    // need the show_messages to clear old msgs from before we entered inv;
+    // need the print_stats in case we messed around with armor.
   }
-  refresh(); // xxx in case time passed and dog moved
-  //  show_messages(); // because time passed
-  //  refresh(false); // because creatures may have moved
   //  just_throwing = false;
   return true;
 }
@@ -1158,7 +1172,7 @@ Boolean getobj_init(Char *let, Char *word, UChar action)
     StrPrintF(ScratchBuffer, "You don't have anything%sto %s.",
 	      already_verbing ? " else " : " ", word);
     message(ScratchBuffer);
-    show_messages();
+    //    show_messages();
     return false;
   }
   return true;

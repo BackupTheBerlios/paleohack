@@ -4,15 +4,16 @@ APPID = "PlHk"
 # I have NOT got this creator id assigned.  Remember to do this!!
 # (It is currently available.  Jul 6 2001.)
 
-UIOBJS = form_about.o form_chargen.o form_map.o form_inv.o \
-         form_messagelog.o form_engrave.o form_objtype.o
+UIOBJS = form_about.o form_chargen.o form_map.o form_inv.o form_invmsg.o \
+         form_messagelog.o form_engrave.o form_objtype.o form_prefs.o
 DUMMIES = invent.o make_zoo.o obj_name.o do_name.o drop.o
-OBJS = main.o util.o time.o display.o lock.o   obj_init.o level.o \
+OBJS = main.o util.o time.o display.o win.o lock.o   obj_init.o level.o \
        make_level.o make_maze.o make_obj.o make_mon.o movesee.o \
        wield.o worn.o search.o eat.o potion.o read.o zap.o apply.o \
        worm.o fight.o dog.o trap.o mon.o monhityou.o steal.o wizard.o \
        timeout.o track.o vault.o engrave.o shk.o  \
                                                  save.o bones.o end.o  \
+       data.o \
        $(DUMMIES) $(UIOBJS) $(TARGET)-sections.o
 
 INCS = paleohackRsc.h paleohack.h

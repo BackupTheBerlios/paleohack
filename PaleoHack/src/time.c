@@ -53,6 +53,7 @@ void getdate(Char *datestr)
    see http://www.faqs.org/faqs/astronomy/faq/part3/section-15.html
    I should compare to the algorithm in unix.c ...
  */
+// XXXX off-by-one error? (full moon msg is a day late.  Aug 24-27 + not 23.)
 Short phase_of_the_moon()
 {
   Short tmp;
@@ -82,11 +83,13 @@ Short phase_of_the_moon()
   /*  "Subtract 4.  ... In the 21st century, use -8.3 instead of -4." */
   // Gaah!  Floating point!
   tmp = (tmp * 10) - 83;
+  tmp += 20; // Kludge added to make it work out right(?). Aug23,2002.
   /*  "Reduce modulo 30 to get a number between 0 and 29. This is
    *  the age of the Moon." */
   tmp = tmp % 300;
   // Ok but then I also need to get it from there to "between 0 and 7".
   tmp = (tmp * 2) / 75; // get it down to [0..7]
+
   /*  "Conway also gives refinements for the leap year cycle and also
    *  for the slight variations in the lengths of months; what I have
    *  given should be good to +/- a day or so." */

@@ -113,9 +113,35 @@ Boolean do_remove_armor(obj_t *otmp) // was in do_wear.c  -  was doremarm()
 }
 
 
-Boolean do_remove_ring(obj_t *otmp) // was doremring
+Boolean do_remove_ring()
 {
-  if (otmp != uright && otmp != uleft) {
+  obj_t *ring = NULL;
+  Short btn_num;
+  // If there are no rings,"Not wearing any ring."
+  if (!uleft && !uright) {
+    message("Not wearing any ring.");
+    return false;
+  }
+  // If there is one ring, just take it off.
+  if (!uleft)
+    ring = uright;
+  else if (!uright)
+    ring = uleft;
+  // If there are two rings, ask which one (I should allow you to cancel..)
+  else if (uleft && uright) {
+    StrPrintF(ScratchBuffer, "%s,", doname(uright));
+    btn_num = FrmCustomAlert(RightLeftP, "Remove", ScratchBuffer,
+			     doname(uleft));
+    if (btn_num == 0) ring = uright;
+    else if (btn_num == 1) ring = uleft;
+    else return false;
+  } else return false;
+  return (do_remove_ring_helper(ring));
+}
+
+Boolean do_remove_ring_helper(obj_t *otmp) // was doremring
+{
+  if (!otmp || (otmp != uright && otmp != uleft)) {
     message("But you are not wearing that.");
     return false;
   }
@@ -149,6 +175,7 @@ Boolean armoroff(obj_t *otmp) // was in do_wear.c
       break;
     case PAIR_OF_GLOVES:
       spin_multi("You finished taking off your gloves.");
+      if (oops_cockatrice(uwep)) return false; // you are now dead
       break;
     default:
       spin_multi("You finished taking off your suit.");
@@ -226,9 +253,11 @@ Boolean do_wear_armor(obj_t *otmp) // was doweararm - was do_wear.c
     setuwep(NULL);
   delay = -objects[otmp->otype].oc_delay;
   if (delay) {
-    //    nomul(delay); // XXXXXXX need implementing/testing/revising/thingy
+    nomul(delay); // XXX need to test
     //    nomovemsg = "You finished your dressing manoeuvre.";
-    message("You finish your dressing manoeuvre.");
+    spin_multi("You finish your dressing manoeuvre.");
+  } else {
+    message("You put it on."); // xx added
   }
   otmp->bitflags |= O_IS_KNOWN; //otmp->known = 1;
   return true;
@@ -239,6 +268,7 @@ Boolean do_wear_ring(obj_t *otmp)
 {
   Long mask = 0;
   Long oldprop;
+  Short btn_num;
 
   if (uleft && uright) {
     message("There are no more ring-fingers to fill.");
@@ -261,10 +291,11 @@ Boolean do_wear_ring(obj_t *otmp)
   if (uleft) mask = RIGHT_RING;
   else if (uright) mask = LEFT_RING;
   else { // Not that it matters anymore...
-    if (FrmAlert(RightLeftP) == 0)
-      mask = RIGHT_RING;
-    else
-      mask = LEFT_RING;
+    btn_num = FrmCustomAlert(RightLeftP, Doname(otmp), "put on right",
+			     "left hand");
+    if (btn_num == 0)  mask = RIGHT_RING;
+    else if (btn_num == 1)  mask = LEFT_RING;
+    else return false;
   }
 
   setworn(otmp, mask);
@@ -346,7 +377,7 @@ void find_ac()
   if (uarmg) uac -= ARM_BONUS(uarmg);
   if (uleft && uleft->otype == RIN_PROTECTION) uac -= uleft->spe;
   if (uright && uright->otype == RIN_PROTECTION) uac -= uright->spe;
-  if (uac != you.uac){
+  if (uac != you.uac) {
     you.uac = uac;
     flags.botl |= BOTL_AC;
   }

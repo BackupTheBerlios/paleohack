@@ -287,6 +287,8 @@ Char * xname(obj_t *obj)
 }
 
 
+// Note: you can't call doname twice in one line (like as two args to a fn).
+// 'cause it clobbers a buffer.
 Char * doname(obj_t *obj)
 {
   Char prefix[PREFIX];

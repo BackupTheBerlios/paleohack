@@ -104,7 +104,8 @@ void invault()
     you.uinvault = 0;
     return;
   }
-  if (++you.uinvault % 50 == 0 && (!guard || gdlevel != dlevel)) {
+  // every 50 consecutive turns that you spend in a vault, make a guard.
+  if ((++you.uinvault % 50 == 0) && (!guard || gdlevel != dlevel)) {
     //    Char buf[BUFSZ];
     Short x, y, gx, gy;
 
@@ -176,7 +177,7 @@ void do_vault(Char *buf)
     message("\"Please follow me.\"");
   else {
     message("\"Most likely all that gold was stolen from this vault.\"");
-    message("\"Please drop your gold (say d$ ) and follow me.\"");
+    message("\"Please drop your gold (say D$ ) and follow me.\"");
   }
   set_cell_type(floor_info[EGUARD->fx[0]][EGUARD->fy[0]], DOOR);
 }

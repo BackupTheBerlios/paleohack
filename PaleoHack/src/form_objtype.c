@@ -63,16 +63,28 @@ Boolean ObjType_Form_HandleEvent(EventPtr e)
       total = ggetobj_end(selected_symbols, drop_not_identify,
 	  (droppable[NUM_OBJ_SYMBOLS-1] && selected[NUM_OBJ_SYMBOLS-1]), // a
 	  (droppable[NUM_OBJ_SYMBOLS-2] && selected[NUM_OBJ_SYMBOLS-2]) ); // u
-      if (total && drop_not_identify) {
+      if (total) {
 	extern Boolean took_time;
 	void end_turn_start_turn(); // in main.c
 	took_time = true;
 	end_turn_start_turn();
+      } else if (!drop_not_identify) {
+	// User didn't want to ID any of this 'type', give them another
+	// chance until they ID something.  (this is proper behavior.)
+	drop_not_identify = false;
+	FrmPopupForm(ObjTypeForm);
       }
       handled = true;
       break;
     case btn_ot_cancel:
       LeaveForm();
+      if (!drop_not_identify) {
+	// Actually I should not allow you to cancel an identify at all.
+	extern Boolean took_time;
+	void end_turn_start_turn(); // in main.c
+	took_time = true;
+	end_turn_start_turn();
+      }
       handled = true;
       break;
     default:

@@ -5,6 +5,7 @@
  *********************************************************************/
 #include "paleohack.h"
 
+#include "paleohackRsc.h" // to avoid saving in chargen form
 
 // Globals: some of these will need saving, some won't.
 // Also, make sure that any that need reinitializing on quit/restart are
@@ -102,8 +103,7 @@ extern obj_t *billobjs;                     // OK
 */
 
 
-/////////////////////////////////////////////////////////////////
-Boolean dosave() // was dosave0
+void save_you() // could almost be static.
 {
   Short offset = 0;
   VoidPtr p;
@@ -114,15 +114,6 @@ Boolean dosave() // was dosave0
   UInt rec_i, max_rec;
   Short *recp, i;
   Boolean replace = false;
-
-  level_message("Be seeing you ...");
-
-  if (flags.moon_phase == FULL_MOON)	/* ut-sally!fletcher */
-    you.uluck--;			/* and unido!ab */
-  // "savelev" will write to a separate record!
-
-  savelev(dlevel, true); // xxx
-
   rec_size += 2*sizeof(Int8) + 2*sizeof(UShort);
   rec_size += sizeof(you_t);
   rec_size += MAX_OC_NK * sizeof(UChar);
@@ -135,14 +126,16 @@ Boolean dosave() // was dosave0
   if (you.ustuck) rec_size += sizeof(UShort);
   rec_size += 2 * MAX_GENOCIDE * sizeof(Char);
   rec_size += 4 * 3; // all of the "save_tag" nuggets
+
   // no need for old "savenames" since oc_unames already lives in database.
   
   // sample values:
   // ( 2 inv=276 fcobj=278 fallen_down=280 flags+you=524 !stuck=524 gen=644 )
   // ( 2     242       244             246           490        490     610 )
-  
 
   // Figure out where to insert this record.  Delete one if this replaces it.
+  // ('stamp' is the number before the lowest 'dlevel', i.e., stamp==0,
+  // this is to make sure we insert this record before the first dlevel record)
   max_rec = DmNumRecords(phSaveDB);
   for (i = REC_SAVECHAR, rec_i = 0 ; (i < max_rec) && !rec_i ; i++) {
     vh = DmQueryRecord(phSaveDB, i);
@@ -178,6 +171,7 @@ Boolean dosave() // was dosave0
   offset += sizeof(Int8);
   // Note, I've moved "you" in front of invent,etc.
   DmWrite(p, offset, &you, sizeof(you_t));
+
   offset += sizeof(you_t);
   DmWrite(p, offset, oc_name_known, MAX_OC_NK * sizeof(UChar));
   offset += MAX_OC_NK * sizeof(UChar);
@@ -209,6 +203,29 @@ Boolean dosave() // was dosave0
   // This can be skipped because for me they'll be in the right "file" already.
   MemHandleUnlock(vh);
   DmReleaseRecord(phSaveDB, REC_SAVECHAR, true);
+}
+
+/////////////////////////////////////////////////////////////////
+Boolean dosave() // was dosave0
+{
+
+  level_message("Be seeing you ...");
+
+  {
+    extern Boolean itsy_on;
+    my_prefs.big_font = !itsy_on;
+    writePrefs();
+  }
+
+  if (flags.moon_phase == FULL_MOON)	/* ut-sally!fletcher */
+    you.uluck--;			/* and unido!ab */
+
+  // "savelev" will write to a separate record!
+  //   savelev(dlevel, true); // xxx  MOVED to BELOW.
+
+  savelev(dlevel, true);
+  save_you();
+
   return true;
 }
 

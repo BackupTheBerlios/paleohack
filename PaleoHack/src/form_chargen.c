@@ -397,11 +397,11 @@ void greet_player()
     get_default_username(plname, PL_NSIZ);
   plname[PL_NSIZ-1] = '\0';
 
+  preempt_messages();
   StrPrintF(ScratchBuffer, "Hello %s, welcome to hack!", plname);
   message(ScratchBuffer);
   flags.botl = BOTL_ALL;
   multi = 0;
-  preempt_messages();
 }
 // also, decide whether to print "You are lucky! Full moon tonight."
 void moon_player()

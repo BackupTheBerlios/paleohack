@@ -111,6 +111,7 @@ void done_in_by(monst_t *mtmp)
 static Char * ordin(Short n)
 {
   Short d = n%10;
+  if (n >= 11 && n <= 13) d = 0; // "th".
   switch(d) {
   case 1:  return "st";
   case 2:  return "nd";
@@ -127,6 +128,8 @@ static Boolean need_rip;
 void done(Char *st1)
 {
   Boolean leftform = false;
+  Word curfrm = FrmGetActiveFormID();
+
   if (you.dead) return; // hm, we've already been here
   need_rip = false;
 #ifdef WIZARD
@@ -157,9 +160,13 @@ void done(Char *st1)
 
   // Maybe I need to put wait_for_event in a while() LOOP that checks
   // whether there are any more messages left to display...
-  while (message_clear(false)) {
-    show_messages();
-    wait_for_event(); //  if (flags.toplin == 1) more();
+  if (curfrm != InvForm &&
+      curfrm != InvMsgForm &&
+      curfrm != InvActionForm) {
+    while (message_clear(false)) {
+      show_messages();
+      wait_for_event(); //  if (flags.toplin == 1) more();
+    }
   }
 
   if (StrChr("bcds", *st1)) { // XXXX remove true when done testing!
@@ -492,7 +499,7 @@ static void transition_to_topten()
 
 void init_topten()
 {
-  Short i;
+  //  Short i;
   /*
   i = (tt_rank ? tt_rank-2 : tt_show_after_rank-1);
   draw_topten(i - 2); // we'll show 3 entries before yours.
@@ -503,7 +510,7 @@ void init_topten()
 static Short draw_topten(Short i)
 {
   Short rec_i, rank;
-  Short y = 0, fits, maxtop;
+  Short y = 0; //, fits, maxtop;
   VoidHand vh;
   topten_t *t1;
   RectangleType r;
@@ -784,10 +791,15 @@ Boolean Tombstone_Form_HandleEvent(EventPtr e)
   case frmOpenEvent:
     frm = FrmGetActiveForm();
     FrmDrawForm(frm);
-    if (need_rip)
-      draw_tombstone();
-    else
-      transition_to_topten();
+    if (!you.dead) {
+      need_rip = false;
+      tt_next_page = draw_topten(0);
+    } else {
+      if (need_rip)
+	draw_tombstone();
+      else
+	transition_to_topten();
+    }
     handled = true;
     break;
 
@@ -797,7 +809,9 @@ Boolean Tombstone_Form_HandleEvent(EventPtr e)
     else {
       if (tt_next_page >= DmNumRecords(phScoreDB)) {
 	LeaveForm();
-	FrmGotoForm(Chargen1Form); // xxx need to change this.  (I do?)
+	if (you.dead)
+	  FrmGotoForm(Chargen1Form); // xxx need to change this.  (I do?)
+	// else you're just viewing it from the dungeon menu.
       } else {
 	tt_next_page = draw_topten(tt_next_page);
       }

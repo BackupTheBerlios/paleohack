@@ -56,6 +56,7 @@ HackPreferenceType my_prefs = {
   false, // relative move (off)
   true,  // sound
   true,  // run
+  false,  // overlay_circles
   //  true,  // auto pickup
   false, // invert (not) on
   false, // color (not) on
@@ -382,9 +383,17 @@ Boolean Main_Form_HandleEvent(EventPtr e)
       switch(e->data.menu.itemID) {
       case menu_mainAbout: FrmPopupForm(AboutForm);   return true;
       case menu_mainMap:   FrmPopupForm(MapForm);     return true;
+      case menu_mainPrefs: FrmPopupForm(PrefsForm);     return true;
       case menu_mainMsgs:
 	msglog_mode = SHOW_MSGLOG;
 	FrmPopupForm(MsgLogForm);
+	return true;
+      case menu_mainScores:
+	//	message("not implemented yet");
+	//	show_messages();
+	FrmPopupForm(TombstoneForm);
+	// Seems to work ok even (yea if there are no scores yet.)
+	// The most recent score will be highlighted.
 	return true;
       case menu_mainHelp:
 	if (0 == FrmAlert(LongShortP))
@@ -405,7 +414,15 @@ Boolean Main_Form_HandleEvent(EventPtr e)
 	toggle_itsy();
 	move_visible_window(you.ux, you.uy, true);
 	refresh();
+	show_messages();
 	return true;
+	/*
+      case menu_mainWiz1:
+	{
+	  makemon(&mons[12], you.ux+1, you.uy); // Yellow Light
+	  return true;
+	}
+	*/
       case menu_mainWiz1:
 	{
 	  extern Short engrave_or_what;
@@ -444,6 +461,10 @@ Boolean Main_Form_HandleEvent(EventPtr e)
 	  cmd = e->data.menu.itemID - MAGIC_MENU_NUMBER;
 	  if (cmd > 0 && cmd < 128)
 	    handled = do_command((Char) cmd);
+	  if (!handled)
+	    if (do_inv_command(cmd))
+	      // will pop up a form!
+	      return true;
 	}
 	curr_state.count = /*command_count = */0;
 	break;
@@ -476,6 +497,10 @@ Boolean Main_Form_HandleEvent(EventPtr e)
       }
       tmp_x = e->screenX - 80;
       tmp_y = e->screenY - 80;
+      if (my_prefs.relative_move) {
+	// translate tap coordinates so that rogue's screen location = 0,0.
+	relativize_move(&tmp_x, &tmp_y);
+      }
       if (!convert_to_dir(tmp_x, tmp_y, 10)) {
 	took_time = false;
 	handled = true;
@@ -552,34 +577,27 @@ static Boolean do_command(Char com_val)
     took_time = doprgold(); // count your money.  can take multiple turns..
     break;
   case 'T':
+    took_time = false;
     if (getobj_init("[", "take off", ACT_AOFF))
       FrmPopupForm(InvActionForm);
-    else {
-      message("Not wearing any armor.");
-      took_time = false;
-    }
+    break;
+  case 'R':
+    took_time = do_remove_ring(); // pops up a Right/Left "custom form".
     break;
   case ')':
-    message("list currently wielded weapon...");
+    do_print_weapon();
     took_time = false;
     break;
   case '[':
-    message("list currently worn armor...");
+    do_print_armor();
     took_time = false;
     break;
   case '=':
-    message("list currently put-on rings...");
+    do_print_rings();
     took_time = false;
     break;
   case ':':
     took_time = do_look(); // list the things you are standing on.  needs work.
-    break;
-  case '/':
-    // "whatsit" command.. puts main event handler into MODE_GETCELL,
-    // you need to write a graffiti character next.
-    // (I think I should allow screen taps too.)
-    // and you get a message saying what that class of objs/mons is.
-    took_time = false;
     break;
   case '\\':
     // "list known items" command
@@ -611,6 +629,17 @@ static Boolean do_command(Char com_val)
     // allows you to move cursor to a monster to give it a name!
     // gar... not sure how to do that... will be like "tap to recall"
     // in moria: basically I need a MODE_NAMEMON for main event handler.
+  case '/':
+    // "whatsit" command.. puts main event handler into MODE_GETCELL,
+    // you need to write a graffiti character next.
+    // (I think I should allow screen taps too.)
+    // and you get a message saying what that class of objs/mons is.
+    took_time = false;
+    curr_state.cmd = '/';
+    curr_state.item = NULL;
+    curr_state.mode = MODE_GETCELL;
+    message("Specify what? (Tap on screen)");
+    break;
   case '\024': // ^T "teleport".  octal 24, decimal 20.
   case 'Z': /* I'm not sure that ^T will work, even with a keyboard.
 	       ^T is ok as a menu item but keypress doesn't work in POSE.
@@ -627,7 +656,7 @@ static Boolean do_command(Char com_val)
 
 static Boolean do_inv_command(Char com_val)
 {
-  Boolean tmp, handled = true;
+  Boolean gotobj = true, handled = true;
   took_time = false; // by default, we're popping up a form.
   // if we return true, the caller will also return immediately.
   //
@@ -650,20 +679,20 @@ static Boolean do_inv_command(Char com_val)
     FrmPopupForm(MsgLogForm);
     break;
   case 'a':
-    if (getobj_init("(", "use or apply", ACT_APPLY))
+    if ((gotobj = getobj_init("(", "use or apply", ACT_APPLY)))
       FrmPopupForm(InvActionForm);
     break;
   case 'c':
     // it SHOULD first ask you whether you want to name an individual object
     // (yes = 'call' or no = 'name'?)
     if (0 == FrmAlert(NameCallP))
-      tmp = getobj_init("#", "name", ACT_NAME);
+      gotobj = getobj_init("#", "name", ACT_NAME);
     else
-      tmp = getobj_init("?!=/", "call", ACT_CALL);
-    if (tmp) FrmPopupForm(InvActionForm);
+      gotobj = getobj_init("?!=/", "call", ACT_CALL);
+    if (gotobj) FrmPopupForm(InvActionForm);
     break;
   case 'd':
-    if (getobj_init("0$#", "drop", ACT_DROP))
+    if ((gotobj = getobj_init("0$#", "drop", ACT_DROP)))
       FrmPopupForm(InvActionForm);
     break;
   case 'D':
@@ -682,51 +711,53 @@ static Boolean do_inv_command(Char com_val)
     // - will people miss the ability to filter by category?  maybe..
     //   (would need pushbuttons to select categories, plus an ALL button).
   case 'e':
-    took_time = eat_off_floor();
+    gotobj = false;
+    took_time = eat_off_floor(&gotobj);
+    // tmp := true IFF we tried to eat something (might die or be interrupted)
     if (took_time)
       end_turn_start_turn();
-    else if (getobj_init("%", "eat", ACT_EAT))
-      FrmPopupForm(InvActionForm);
+    else if (!gotobj) {
+      if ((gotobj = getobj_init("%", "eat", ACT_EAT)))
+	FrmPopupForm(InvActionForm);
+    }
     break;
   case 'q':
-    if (getobj_init("!", "drink", ACT_QUAFF))
+    if ((gotobj = getobj_init("!", "drink", ACT_QUAFF)))
       FrmPopupForm(InvActionForm);
     break;
   case '!':
     // later, will need ("!", "dip into") also.
-    if (getobj_init("#", "dip", ACT_DIP))
+    if ((gotobj = getobj_init("#", "dip", ACT_DIP)))
       FrmPopupForm(InvActionForm);
     break;
   case 'r': 
-    if (getobj_init("?", "read", ACT_READ))
+    if ((gotobj = getobj_init("?", "read", ACT_READ)))
       FrmPopupForm(InvActionForm);
     break;
   case 't':
-    if (getobj_init("#", "throw", ACT_THROW))
+    if ((gotobj = getobj_init("#", "throw", ACT_THROW)))
       FrmPopupForm(InvActionForm);
     break;
   case 'w':
-    if (getobj_init("#-)", "wield", ACT_WIELD))
+    if ((gotobj = getobj_init("#-)", "wield", ACT_WIELD)))
       FrmPopupForm(InvActionForm);
     break;
   case 'E':
     // This will need to pop up the get-a-string Engrave form afterwards,
     // if the action is not cancelled.
-    if (getobj_init("#-)", "write with", ACT_ENGRAVE))
+    if ((gotobj = getobj_init("#-)", "write with", ACT_ENGRAVE)))
       FrmPopupForm(InvActionForm);
     break;
   case 'z':
-    if (getobj_init("/", "zap", ACT_ZAP))
+    if ((gotobj = getobj_init("/", "zap", ACT_ZAP)))
       FrmPopupForm(InvActionForm);
     break;
   case 'P':
-    if (getobj_init("=", "wear", ACT_RWEAR))
+    if ((gotobj = getobj_init("=", "wear", ACT_RWEAR)))
       FrmPopupForm(InvActionForm);
     break;
-  case 'R': break; // remove ring - this should simply ask "right or left"
-    // (*I* think it should also tell you which ring is on which..)
   case 'W':
-    if (getobj_init("[", "wear", ACT_AWEAR))
+    if ((gotobj = getobj_init("[", "wear", ACT_AWEAR)))
       FrmPopupForm(InvActionForm);
     break;
   case 'i':
@@ -756,6 +787,7 @@ static Boolean do_inv_command(Char com_val)
     took_time = false;
     break;
   }
+  if (handled && !gotobj) show_messages();
   return handled;
 }
 
@@ -876,7 +908,14 @@ static Boolean do_xy_command(Short x, Short y)
     tele_finish(x, y, Teleport_control);
     break;
   case '/': // 'whatsit'
-    break;
+    // hmmmm how can I get the "thing player sees at x,y"...
+    {
+      Char c;
+      c = peek_at(x, y);
+      specify_what(c); // sole occupant of data.c
+      took_time = false;
+      break;
+    }
   default:
     break;
   }
@@ -1070,6 +1109,9 @@ static Boolean ApplicationHandleEvent(EventPtr e)
 	case AboutForm:
 	    FrmSetEventHandler(frm, About_Form_HandleEvent);
 	    break;
+	case PrefsForm:
+	    FrmSetEventHandler(frm, Prefs_Form_HandleEvent);
+	    break;
 	case Chargen1Form:
 	    FrmSetEventHandler(frm, Chargen1_Form_HandleEvent);
 	    break;
@@ -1090,6 +1132,9 @@ static Boolean ApplicationHandleEvent(EventPtr e)
 	    break;
 	case InvActionForm:
 	    FrmSetEventHandler(frm, InvAction_Form_HandleEvent);
+	    break;
+	case InvMsgForm:
+	    FrmSetEventHandler(frm, InvMsg_Form_HandleEvent);
 	    break;
 	case ObjTypeForm:
 	    FrmSetEventHandler(frm, ObjType_Form_HandleEvent);

@@ -11,6 +11,21 @@ void setuwep(struct obj *obj)
   setworn(obj, W_WEP);
 }
 
+// return true if player was fatally stupid
+Boolean oops_cockatrice(obj_t *wep)
+{
+  if (!wep) return false;
+  if (!uarmg && wep->otype == DEAD_COCKATRICE) {
+    if (FrmGetActiveFormID() != MainForm) LeaveForm(); // XXXX ?????
+    message("You wield the dead cockatrice in your bare hands.");
+    message("You turn to stone ...");
+    killer="dead cockatrice";
+    done("died");
+    return true;
+  }
+  return false;
+}
+
 // Return 'true' if we actually Did Something
 // note: Some of the messages are shortened to fit in one line.
 Boolean do_wield(obj_t *wep)
@@ -39,12 +54,7 @@ Boolean do_wield(obj_t *wep)
     message(ScratchBuffer);    
   }
   // The cockatrice case is a bugfix from the 1980s.
-  else if (!uarmg && wep->otype == DEAD_COCKATRICE) {
-    if (FrmGetActiveFormID() != MainForm) LeaveForm(); // XXXX ?????
-    message("You wield the dead cockatrice in your bare hands.");
-    message("You turn to stone ...");
-    killer="dead cockatrice";
-    done("died");
+  else if (oops_cockatrice(wep)) {
     return true;
   } // end of 80s bugfix.
   else if (uarms && wep->otype == TWO_HANDED_SWORD)

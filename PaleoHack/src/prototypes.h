@@ -10,12 +10,14 @@ Boolean Chargen2_Form_HandleEvent(EventPtr e) SEC_1;
 Boolean Map_Form_HandleEvent(EventPtr e) SEC_1;
 Boolean Inv_Form_HandleEvent(EventPtr e) SEC_1;
 Boolean InvAction_Form_HandleEvent(EventPtr e) SEC_4;
+Boolean InvMsg_Form_HandleEvent(EventPtr e) SEC_3;
 Boolean getobj_init(Char *let, Char *word, UChar action) SEC_4;
 Boolean ObjType_Form_HandleEvent(EventPtr e);// SEC_5; // debugging
 Boolean Sense_Form_HandleEvent(EventPtr e) SEC_1;
 Boolean MsgLog_Form_HandleEvent(EventPtr e) SEC_5;
 Boolean Engrave_Form_HandleEvent(EventPtr e) SEC_5;
 Boolean Tombstone_Form_HandleEvent(EventPtr e) SEC_5;
+Boolean Prefs_Form_HandleEvent(EventPtr e) SEC_5;
 void clone_for_call(obj_t *otmp) SEC_4;
 void engrave_draw() SEC_4;
 void tick();
@@ -67,6 +69,8 @@ Boolean midnight() SEC_1;
 // display.c
 //
 void where_in_dungeon(Short scr_x, Short scr_y, Short *dun_x, Short *dun_y);
+UChar peek_at(Short dun_x, Short dun_y); // get what the player sees in cell.
+void relativize_move(Short *x, Short *y);
 void print(Short x, Short y, Short ch); // Equivalent of "atl"
 void on_scr(Short x, Short y); // results aren't being used since nscr !exists
 Boolean fits_on_screen(Short x, Short y);
@@ -108,7 +112,7 @@ Boolean message_clear(Boolean really);
 void preempt_messages();
 void show_all_messages();
 void show_messages();
-void show_a_more(Short lines_used, Boolean invert);
+void show_a_more(Short w, Short y, Boolean invert);
 void alloc_message_log();
 void clear_message_log();
 void print_stats(UInt which_stats);
@@ -170,6 +174,10 @@ void stackobj(obj_t *obj) SEC_1;
 Boolean do_look() SEC_5;
 obj_t * splitobj(obj_t *obj, Short num) SEC_1; //was in "do.c"
 Boolean doprgold() SEC_5;
+void do_print_weapon() SEC_5; // was doprwep
+void do_print_armor() SEC_5; // was doprarm
+void do_print_rings() SEC_5; // was doprring
+
 // make_mon.c
 monst_t * makemon(permonst_t *ptr, Short x, Short y) SEC_2;
 PointType enexto(Int8 xx, Int8 yy) SEC_2;
@@ -177,7 +185,7 @@ Boolean goodpos(Short x, Short y) SEC_2; // (zap needs this too)
 void rloc(monst_t *mtmp) SEC_2;
 monst_t * mkmon_at(Char let, Short x, Short y) SEC_2;
 // mon.c
-void movemon() SEC_3;
+void movemon();// SEC_3; // need to debug an unallocated chunk access
 void justswld(monst_t *mtmp, Char *name) SEC_3;
 void youswld(monst_t *mtmp, Short dam, Short die, Char *name) SEC_3;
 Boolean do_chug(monst_t *mtmp) SEC_3; // was dochug
@@ -245,6 +253,7 @@ void save_tag(VoidPtr p, Short *offset, Char *tag);
 void check_tag(VoidPtr *p, Char *tag);
 Boolean getlev(UChar lev, Boolean not_bones) SEC_5;
 // save.c
+void save_you() SEC_5; // xxx could almost be static.
 Boolean dosave() SEC_5; // xxx these need testing too.
 Boolean dorecover() SEC_5;
 // bones.c
@@ -287,6 +296,7 @@ void set_wounded_legs(Long side, Short timex) SEC_3;
 void heal_legs() SEC_2;
 // wield.c
 void setuwep(struct obj *obj) SEC_1; // wrapper for setworn!
+Boolean oops_cockatrice(obj_t *wep) SEC_1;
 Boolean do_wield(obj_t *wep) SEC_1;
 void corrode_weapon() SEC_1;
 tri_val_t chwepon(obj_t *otmp, Short amount) SEC_1;
@@ -294,7 +304,8 @@ tri_val_t chwepon(obj_t *otmp, Short amount) SEC_1;
 void setworn(obj_t *obj, Long mask) SEC_1;
 void setnotworn(obj_t *obj) SEC_1;
 Boolean do_remove_armor(obj_t *otmp) SEC_1; // was doremarm
-Boolean do_remove_ring(obj_t *otmp) SEC_1; // was doremring
+Boolean do_remove_ring() SEC_1; // was doremring
+Boolean do_remove_ring_helper(obj_t *otmp) SEC_1; // was doremring
 Boolean armoroff(obj_t *otmp) SEC_1;
 Boolean do_wear_armor(obj_t *otmp) SEC_1; // was doweararm
 Boolean do_wear_ring(obj_t *otmp) SEC_1;
@@ -335,7 +346,7 @@ Short drop(obj_t *obj) SEC_5;
 void dropx(obj_t *obj) SEC_5;
 Boolean do_throw() SEC_5; // was dothrow
 // eat.c
-Boolean eat_off_floor() SEC_1;
+Boolean eat_off_floor(Boolean *tried) SEC_1;
 Boolean do_eat(obj_t *otmp);
 void gethungry() SEC_2;
 void morehungry(Short num) SEC_2;
@@ -360,7 +371,7 @@ void hit_message(Char *str, monst_t *mtmp, Char punct) SEC_3; // was 'hit(...)'
 void miss_message(Char *str, monst_t *mtmp) SEC_3; // was 'miss(...)'
 monst_t * bhit(Short ddx, Short ddy, Short range, Char sym,
 	       Boolean call_fhit, obj_t *obj) SEC_3;
-monst_t * boomhit(Short dx, Short dy, Boolean *caught);// SEC_3;
+monst_t * boomhit(Short dx, Short dy, Boolean *caught) SEC_3;
 void buzz(Short type, Short sx, Short sy, Short dx, Short dy) SEC_3;
 void fracture_rock(obj_t *obj) SEC_3;
 // apply.c
@@ -378,7 +389,7 @@ coord * get_track(Short x, Short y) SEC_4;
 void timeout() SEC_4; // missing a few lines
 // vault.c
 void setgd() SEC_4; // All of vault.c is UNTESTED.
-void invault() SEC_4;
+void invault() SEC_4; //xxx testing
 void do_vault(Char *buf) SEC_4;
 Short gd_move() SEC_4;
 void gddead() SEC_4;
@@ -431,6 +442,10 @@ Short shk_move(monst_t *shkp) SEC_4;
 void shopdig(Boolean fall) SEC_4;
 Boolean online(Short x, Short y) SEC_4;
 Boolean follower(monst_t *mtmp) SEC_4; // also used in dog.c
+
+// data.c
+void specify_what(UChar c);
+
 
 // lock.c
 void lock_const_recs();

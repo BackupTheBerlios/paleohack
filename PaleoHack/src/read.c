@@ -334,6 +334,7 @@ tri_val_t do_read(obj_t *scroll)
     } else {
       extern Boolean drop_not_identify;
       drop_not_identify = false;
+      show_messages(); // maybe.
       FrmPopupForm(ObjTypeForm);
       return GO_ON;
     }

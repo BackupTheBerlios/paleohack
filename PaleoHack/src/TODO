@@ -192,11 +192,17 @@ The Identify (and Drop) 'a'ny button should work now.
 Mysteriously, the wand of secret door detection WORKS now.
 The Drop (and Identify) 'u'npaid button should work now.
 
+need to make "losestr()" beep.  done.
+
+btw, in Hack, unix.c has a Y2K bug (in getdate() and a few places in end.c,
+it saves a formerly-6-character date in 'record' file.)
+
+
 TO DO:  teleportation interacts poorly with 'more' mode......
 	test the vault query (croesus)
 	saving and restoring of WORMS is NOT IMPLEMENTED YET.
 	look at all the inv actions, make sure they take turn/don't, properly.
-	also make sure they print msgs promptly (something wasn't..)
+		also make sure they print msgs promptly (something wasn't..)
 	game crashed if killed by eel? fix this.
 	Need top ten list.  ok, need it to be printed by "High Scores" menu.
 	Need 'count' (e.g. "99." SHOULD rest for 99 turns).
@@ -209,26 +215,187 @@ TO DO:  teleportation interacts poorly with 'more' mode......
      Also, an old '@' is printed in some place you were a few moves back.
         and the monsters and the little dog are all in old places too.  GAR.
         This is way screwy.
-		FIXED, aug 10 2002.
+		FIXED, aug 10-16 2002.
         Wonder if it is related to levels being created with cruft in walls.
-		<PROBABLY NOT.>
+		NO.
    Bug: 'take off' is completely screwy.
    Bug: null pointer or something when you "float to ground" after levitate.
         ditto when you die of food poisoning non-immediately ?
 
 
-need to make "losestr()" beep.  done.
-
-btw, in Hack, unix.c has a Y2K bug (in getdate() and a few places in end.c,
-it saves a formerly-6-character date in 'record' file.)
-
 
 BACK TO THE OLD GRINDSTONE Sat Aug 10 2002
 ------------------------------------------
 I hacked the things that call put_char_at so they print only in MainForm.
-   If any forms other than InvForm take time, might need to refresh()
+	hey - wonder if this will be a problem for "detect foo" effects.
+   NOTE If any forms other than InvForm take time, might need to refresh()
    after calling LeaveForm.  Keep an eye out.
 Fixed "dropping" (from 'i', 'd', and 'D') so that it takes 0 or 1 turns.
 Fixed the savelevel amnesia!
 	simple fix: tell start_savelev to DELETE the old record. duh.
 	(it was leaving the original record for the level.  bah.)
+...checked-in the above changes to Berlios.
+----------
+FRI AUG 16
+----------
+Fixed the "savelevel still has amnesia if this character has never exited app"
+	ah, this is because not enough records exist,
+	I think I have fixed this by having the check for the level-records
+	 start at a lower number (ok because prev rec is stamped '0', < dlevel)
+Fixed the "choked or interrupted eating from floor causes invselect popup".
+----------
+SUN AUG 18 or earlier.
+----------
+fixed (I think) the problem with 3 line messages showing only last line.
+Added ROBOTFINDSKITTEN alternative mode for showing messages in inventory.
+Added message log to InvForm menu.
+Made the (old) message get cleared when you exit InvForm.
+[checked in the code]
+Removed the old debugging printf for throwing.
+Fixed "11st, 12nd, 13rd" in end.c
+Fixed the delayed update of ac in status line (when you wear/remove armor).
+Fixed some message-showing problems with 'T' 'W' etc and also menu problem.
+The high-score main menu item will actually show the high score list now.
+[checked in the code]
+	
+
+TO DO:	ANYTHING NOT YET COMPLETED ON PREVIOUS to do list, PLUS:
+	Killed when blinded by yellow flash == fatal exception in tombstone.
+		I am UNABLE TO REPRODUCE this in emulator - it doesn't crash.
+	Down+up before leaving PaleoHack for the first time == Wrong Level 1.
+		FIXED in aug
+	Eating from floor, if you choke or are interrupted, you get a popup!
+		FIXED in aug (but tested only for choking)
+	Fix RFK-mode (popup inventory messages) so that you can DIE w/o WEDGING
+		FIXED in aug
+	also, need to clear the message line when you exit inventory.
+		FIXED - if stuff gets cleared too much, unfix it in form_inv.c
+	3 line messages are shown only as the last line.
+		FIXED I think.
+	"Throwing" prints the symbol in message line for debug - remove it.
+		FIXED in aug
+	Shift-move (the tapping run) retries until you're out of bear trap!
+		Tested this in Hack.  Apparently this is "correct" behavior.
+	The top ten list page-scrolling overlaps too much.  why did I do that?
+		Too lazy to fix it.
+	The "ac" in status line is not updated when you wear/remove armor.
+		FIXED in aug
+	'W' from menu doesn't do anything; too much showmessage for 'W' or 'T'
+		FIXED in aug
+	Sometimes get a memory error (in movemon()).
+		PH just read from memory location 0x7E7C, unallocated chunk.
+		I have moved movemon to the default code section, keep eye out.
+	PH will crash if you leave character generation before 1st character.
+		or anyway it will create an empty save file.
+		(note, this is only for the very first character ever.)
+	Make sure dog doesn't print in inv, when you're identifying something.
+	Sometimes you start out with NO DOG.
+
+-------------------------------------------------------------------------
+STILL SUN AUG 18
+----------------
+Tested the vault query (croesus) for players who tunnel in; seems to work.
+Fixed 'W' so that it uses {delay, nomul, spin_multi}
+Putting on and removing rings takes a turn properly now & can be cancelled.
+Implemented ')', '[', and '=' commands.
+Implemented '/' command including the spew-a-literary-reference part.
+	NOTE for checking into Berlios:  need to "CVS ADD" data.c, form_prefs.c, win.c, win.h
+Testing all menu actions:
+    SHOW
+	Map /M: ok
+	Message-log /L: ok
+	/ What-is-that: ok! but, would be better if you could use graffiti too.
+	\ Discoveries: ok
+	: Look-here: ok
+	Instructions: ok
+	About-PaleoHack: ok
+	High-scores: ok
+	Quit /Q: ok
+    GO/DO
+	Teleport: untested and not wholly implemented  <--------------
+	< Up: ok
+	> Down: ok
+	f Run: ok
+	F Run more: ok
+	m Move onto: ok
+	M run onto: ok
+	. rest: ok
+	, pickup: ok
+	E engrave: ok
+	s search: ok
+	^ trap id: ok
+    USE
+	i inventory: ok - needs more checking
+	$ count gold: ok
+	p pay bill: ok if no bill, needs testing in store  <--------------
+	c call: ok
+	C name: ok
+	a apply: ok          need to check all tools
+	e eat: ok            need to check all foods
+	q quaff: ok          need to check all potions
+	r read: ok           need to check all scrolls
+	t throw: ok          need to check special effects, if any
+	z zap: ok            need to check all wands
+    PUT	
+	d drop: ok
+	D drop: $ is ok, symbols are ok, 'a' is sometimes ok  <--------------
+	) curr weap: ok
+	[ curr arm: ok
+	= curr rings: ok
+	w wield: ok
+	P put on ring: ok    need to check special effects, if any
+	R remove ring: ok
+	T take off armor: ok, but need to compare turns-taken to Hack.  <--
+	W wear armor: ok, but need to compare turns-taken to Hack.  <--
+    SET	
+	badly need to add Preferences!!!!  small font works though.
+
+----------
+WED AUG 21
+----------
+Began adding preferences:
+"Font Size" is an IMPLICIT preference, recorded when you exit the app.
+RelativeMove, Sound, and Invert are preferences.  They seem to work ok.
+----------
+FRI AUG 23
+----------
+Fixed 'identify' so that it takes a turn and allows re-choosing of types.
+(Also, dog movement seems to be ok for identify.)
+Fixed bug with printing objects in a stack w/o gold hat you are standing on.
+Fixed crash bug when you wield a dead cockatrice via inv-form menu.
+Dead cockatrice will now kill you when engraving w/o gloves.
+Dead cockatrice will now kill you when wielded and you remove your gloves.
+Tweaked phase-of-moon to match up with reality & hack a little better.
+
+combining the preAugust and midAugust to-do lists:
+TO DO:  teleportation interacts poorly with 'more' mode......
+	saving and restoring of WORMS is NOT IMPLEMENTED YET.
+	look at all the inv actions, make sure they take turn/don't, properly.
+		DONE FOR DUNGEON MENUS, BUT NOT FOR 'INV' FORM
+	game crashed if killed by eel? fix this.
+	Need 'count' (e.g. "99." SHOULD rest for 99 turns).
+        Add preferences/hardwarebutton forms to configure my_prefs values.
+		PARTLY DONE
+   Bug:	sometimes levels are being created with cruft in walls, or [] character
+	in tunnels.
+   Bug: null pointer or something when you "float to ground" after levitate.
+        ditto when you die of food poisoning non-immediately ?
+		hm, I died of food poisoning w/o crashing (8/18/02)
+   Bug:	Sometimes get a memory error (in movemon()).
+		PH just read from memory location 0x7E7C, unallocated chunk.
+		I have moved movemon to the default code section, keep eye out.
+   Bug:	PH will crash if you leave character generation before 1st character.
+		or anyway it will create an empty save file.
+		(note, this is only for the very first character ever.)
+   Bug:	Sometimes you start out with NO DOG.  I think.
+   x:   Check for things that are supposed to use {delay, nomul, spin_multi}
+	but don't yet due to laziness (like, 'W' was one til I fixed it).
+   x:   I haven't tested the icebox in a long long time.  Looks like it works
+        but its food preservation ability has never been confirmed by me.
+   Bug: Full-moon is "off by one" (a day late) with respect to linux hack:
+	Aug 23 doesn't get msg in Palm, does in linux.
+	Aug 24 gets msg in Palm.
+
+ON A RAINY DAY:	Colorize the Map screen
+		Add a confirmation popup "are you sure" to "Quit".
+Note to self: to be wizard in linux hack, "./hack -D"

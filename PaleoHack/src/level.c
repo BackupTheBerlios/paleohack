@@ -65,7 +65,10 @@ void savelev(Short lev, Boolean not_bones)
 
   if (not_bones) { // open record to write a gamesave level
     //    vh = start_savelev(lev, &rec_i, REC_LEVEL_START, phSaveDB, false);
-    vh = start_savelev(lev, &rec_i, REC_LEVEL_START, phSaveDB, true);
+    // change false to true.
+    //    vh = start_savelev(lev, &rec_i, REC_LEVEL_START, phSaveDB, true);
+    // change REC_LEVEL_START to a lower number in case no SAVECHAR yet.
+    vh = start_savelev(lev, &rec_i, REC_SAVECHAR, phSaveDB, true);
     if (vh) level_exists[lev] = true;
     else {
       // some old debugging stuff....
@@ -147,6 +150,7 @@ static VoidHand start_savelev(Short lev, UInt *rec_i, Short start_i,
 
   // Figure out where to insert this record.  Delete one if this replaces it.
   max_rec = DmNumRecords(db);
+  //  WinDrawChars("moo", 3, 0, 0);
   for (i = start_i ; i < max_rec && !found ; i++) {
     vh = DmQueryRecord(db, i);
     recp = (Short *) MemHandleLock(vh);
@@ -166,15 +170,15 @@ static VoidHand start_savelev(Short lev, UInt *rec_i, Short start_i,
   if (!found) *rec_i = max_rec;
   else if (replace) {
     if (delete_old) {
-      WinDrawChars("replace", 7, 40, 11);
+      //      WinDrawChars("replace", 7, 40, 11);
       DmRemoveRecord(db, *rec_i);
     } else {
-      WinDrawChars("nul", 3, 0, 11);
+      //      WinDrawChars("nul", 3, 0, 11);
       return NULL;
     }
-  } else {
-      WinDrawChars("moo", 3, 0, 11);
-  }
+  }// else {
+  //      WinDrawChars("moo", 3, 0, 11);
+  //  }
 
   // Allocate space for the level.  I wonder how much we need.
   // Make sure this stays consistent with what we're actually
@@ -601,7 +605,9 @@ Boolean getlev(UChar lev, Boolean not_bones)
   Err err;
   Short rec_i, max_rec, *recp = NULL, i;
   DmOpenRef db = (not_bones ? phSaveDB : phBonesDB);
-  Short start_i = (not_bones ? REC_LEVEL_START : 0);
+  //  Short start_i = (not_bones ? REC_LEVEL_START : 0);
+  // change REC_LEVEL_START to a lower number in case no SAVECHAR yet.
+  Short start_i = (not_bones ? REC_SAVECHAR : 0);
 
   // Need to figure out which record to open.
   // Open it for read.     (Remember to close it again afterward.)

@@ -23,7 +23,7 @@ void savebones()
   
 
   // Check whether a bones exists for this dlevel,
-  // and if so, don't create one.
+  // and if so, don't create one, just return.
   max_rec = DmNumRecords(phBonesDB);
   for (i = 0 ; i < max_rec ; i++) {
     Boolean exists = false;

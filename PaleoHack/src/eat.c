@@ -92,9 +92,10 @@ void M_eat_done()
 
 // XXXX I need a routine to call, when a person asks to 'e'at
 // some food that is still on the ground and not in inventory....
-Boolean eat_off_floor() // was part of doeat
+Boolean eat_off_floor(Boolean *tried) // was part of doeat
 {
   obj_t *otmp;
+  *tried = false;
   /* Is there some food (probably a heavy corpse) here on the ground? */
   if (!Levitation) {
     for (otmp = fobj; otmp; otmp = otmp->nobj) {
@@ -104,6 +105,7 @@ Boolean eat_off_floor() // was part of doeat
 				(otmp->quantity == 1) ? "is" : "are",
 				doname(otmp),
 				(otmp->quantity == 1) ? "it?" : "one?")) {
+	  *tried = true;
 	  if (otmp->quantity != 1)
 	    splitobj(otmp, 1);
 	  unlink_obj(otmp); //aka freeobj(otmp);

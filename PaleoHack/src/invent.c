@@ -365,7 +365,8 @@ Short askchain(obj_t *objchn, Char *filter, Char *prompt, Boolean allflag,
     //    show_messages(); // xxx ?
   }
  ret:
-  show_messages(); // xxx ?  Makes the 'identify' msgs show up, but not 'That was all' for removing things from icebox...
+  if (prompt[0] != 'I') // Don't show for 'identify'
+    show_messages(); // xxx ?  screws up 'That was all' for removing things from icebox...?
   return cnt;
 }
 
@@ -416,6 +417,7 @@ Boolean do_look()
   Char *verb = Blind ? "feel" : "see";
   Short ct = 0;
   Char gbuf[30];
+  gbuf[0] = '\0';
 
   if (!you.uswallow) {
     if (Blind) {
@@ -458,7 +460,7 @@ Boolean do_look()
       if (otmp->ox == you.ux && otmp->oy == you.uy)
 	//      cornline(1, doname(otmp));
 	message(doname(otmp));
-    message(gbuf);
+    if (gold) message(gbuf);
   } else if (ct == 1) {
     StrPrintF(ScratchBuffer, "You %s here %s.", verb, 
 	      (!gold) ? doname(otmp0) : gbuf);
@@ -522,12 +524,11 @@ obj_t * splitobj(obj_t *obj, Short num) // this was in "do.c"
   return otmp;
 }
 
-
-
-/*  doinv:
-
-    ilet = 'a'
-    ct = 0
+/*
+static void doinv(Char *buf)
+{
+  Char ilet = 'a';
+  Short ct = 0;
 
     for each item in inventory list,
       if invlet_constant
@@ -537,9 +538,8 @@ obj_t * splitobj(obj_t *obj, Short num) // this was in "do.c"
          ilet++
          if ilet > 'z'
             ilet = 'A'
-
- */
-
+}
+*/
 
 /*
  * Gold is no longer displayed; in fact, when you have a lot of money,
@@ -590,4 +590,70 @@ Boolean doprgold()
     // maybe I should return false to avoid taking n+1 turns???  xxxx
   }
   return true;
+}
+
+/////////
+// Stuff to print "currently <employed> objects"
+
+void do_print_weapon() // was doprwep
+{
+  if (!uwep) message("You are empty handed.");
+  else prinv(uwep); // dump current weapon into a message
+}
+
+void do_print_armor() // was doprarm
+{
+  if (!uarm && !uarmg && !uarms && !uarmh)
+    message("You are not wearing any armor.");
+  else {
+    Char c, sort_lets[5] = {0, 0, 0, 0, 0};
+    obj_t* sort_arms[5] = {0, 0, 0, 0, 0};
+    obj_t* unsorted_arms[5] = {uarm, uarm2, uarmh, uarms, uarmg};
+    // all of this crap is just to sort them alphabetically before printing.
+    Short i, j, k;
+    for (i = 0 ; i < 5 ; i++) {
+      if (unsorted_arms[i]) {
+	c = obj_to_let(unsorted_arms[i]);
+	for (j = 0 ; j < 5 ; j++) {
+	  if (!sort_arms[j]) {
+	    sort_arms[j] = unsorted_arms[i];
+	    sort_lets[j] = c;
+	    break;
+	  } else if (c > sort_lets[j]) {
+	    continue;
+	  } else {
+	    // need to move the rest of the array over
+	    for (k = 5-1 ; k > j ; k--) {
+	      // "I'm crowded, roll over" so they all rolled over & 1 fell out.
+	      sort_arms[k] = sort_arms[k-1];
+	      sort_lets[k] = sort_lets[k-1];
+	    }
+	    sort_arms[j] = unsorted_arms[i];
+	    sort_lets[j] = c;
+	    break;
+	  }
+	} // end for j
+      }
+    } // end for i
+    // end of the sorting crap!
+    for (i = 0 ; i < 5 ; i++)
+      if (sort_arms[i])
+	prinv(sort_arms[i]);
+  }
+}
+
+void do_print_rings() // was doprring
+{
+  if (!uleft && !uright)
+    message("You are not wearing any rings.");
+  else if (uleft && uright) { // print in "alphabetical order"
+    if (obj_to_let(uright) > obj_to_let(uleft)) {
+      prinv(uleft); prinv(uright);
+    } else {
+      prinv(uright); prinv(uleft);
+    }
+  } else { // there's only one so order doesn't matter
+    if (uleft) prinv(uleft);
+    if (uright) prinv(uright);
+  }
 }

@@ -16,6 +16,7 @@
 #define menu_mainFont         1020
 #define menu_mainHelp         1021
 #define menu_mainScores       1022
+#define menu_mainPrefs        1023
 
 #define AboutForm             1050
 #define btn_about_ok          1051
@@ -64,6 +65,7 @@
 #define menu_invCall          1133
 #define menu_invWield         1134
 #define menu_invEngrave       1135
+#define menu_invMsgs          1139
 
 #define InvActionForm         1150
 #define list_iaf              1151
@@ -71,6 +73,12 @@
 #define btn_ia_none           1153
 #define btn_ia_all            1154
 #define btn_ia_cancel         1155
+
+// a window height:
+#define THINGFORM_H 44
+#define InvMsgForm            1160
+
+
 
 #define MsgLogForm         1310
 #define field_ml           1311
@@ -82,6 +90,19 @@
 #define field_sb           1331
 #define btn_sb_ok          1332
 #define btn_sb_cancel      1333
+
+#define PrefsForm          1350
+#define btn_prefs_ok       1351
+#define btn_prefs_cancel   1352
+#define label_prf_1        1360
+#define label_prf_2        1361
+#define list_prf_1         1362
+#define list_prf_2         1363
+#define check_prf_2        1372
+#define check_prf_3        1373
+#define check_prf_4        1374
+#define check_prf_13       1383
+#define check_prf_14       1384
 
 #define ObjTypeForm        1400
 #define btn_ot_ok          1401
@@ -113,6 +134,7 @@
 #define IceBoxP               1903
 #define NameCallP             1904
 #define LongShortP            1905
+#define MonsterInfoP          1906
 
 #define Help1Str         2300
 #define Help2Str         2301
@@ -169,3 +191,18 @@
 #define menu_cmd_z       4122
 //#define menu_cmd_scribe  4123
 
+
+// these are for monsters that have "more info".
+#define MAGIC_STRING_NUMBER 7000
+#define Specify_C  7067
+#define Specify_D  7068
+#define Specify_G  7071
+#define Specify_H  7072
+#define Specify_L  7076
+#define Specify_c  7099
+#define Specify_i  7105
+#define Specify_t  7116
+#define Specify_u  7117
+#define Specify_w  7119
+#define Specify_x  7120
+#define Specify_z  7122

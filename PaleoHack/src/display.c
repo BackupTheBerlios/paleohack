@@ -6,6 +6,10 @@
 #include "paleohack.h"
 #include "paleohackRsc.h"
 #include "display.h"
+#include "win.h"
+
+#define ROBOTFINDSKITTEN 1 /* change in-inventory-message behavior */
+//#define ROBOTFINDSKITTEN 0 /* change in-inventory-message behavior */
 
 static void put_char_at(Short row, Short col, Char ch, Boolean bold);
 void clear_visible();
@@ -27,6 +31,7 @@ static Short scrlx, scrhx, scrly, scrhy; /* corners of new area on screen */
 #define visible_w 20
 #define MaxDimension visible_w
 /* Height in pixels of one character ... in this case an 'M' */
+#define LineHeight 11
 #define visible_char_h 10
 /* Width in pixels of one character ... 160 pixels / 20 col = 8 pix/col */
 #define visible_char_w 8
@@ -53,10 +58,6 @@ Short visible_x = 0, visible_y = 0;
 #define SAVED_MSG_LEN 80
 #define SCR_WIDTH 160
 
-#define qWinEraseRectangle WinEraseRectangle
-#define qWinDrawChars WinDrawChars
-#define qWinDrawInvertedChars WinDrawInvertedChars
-#define qWinDrawLine WinDrawLine
 
 UChar MsgTopY = 0;
 UChar MsgBotY = 22+1;
@@ -231,6 +232,37 @@ void where_in_dungeon(Short scr_x, Short scr_y, Short *dun_x, Short *dun_y)
 }
 
 
+// x, y are dungeon coordinates (like dun_x and dun_y above)
+UChar peek_at(Short x, Short y)
+{
+  Short row, col;
+  Short v_h = itsy_on ? visible_h_itsy : visible_h;
+  Short v_w = itsy_on ? visible_w_itsy : visible_w;
+  if (y < visible_y || x < visible_x ||
+      y >= visible_y + v_h || x >= visible_x + v_w)
+    return '\0'; // the cursor position is not visible on the screen!
+  row = y - visible_y;
+  col = x - visible_x;
+  
+  return terminal[row][col];
+}
+
+
+/*
+ * Given input SCREEN coordinates x,y, with center of screen at 0,0,
+ * Translate x,y such that the onscreen location of '@' is mapped to 0,0
+ */
+void relativize_move(Short *x, Short *y)
+{
+  Short center_x, center_y, vcheat = DunTopY + (itsy_on ? 0 : 0);// same as put_char_at
+  Short vc_w = itsy_on ? visible_char_w_itsy : visible_char_w;
+  Short vc_h = itsy_on ? visible_char_h_itsy : visible_char_h;
+  center_x = vc_w/2 + (you.ux /*char_col*/ - visible_x) * vc_w;
+  center_y = vc_h/2 + (you.uy /*char_row*/ - visible_y) * vc_h + vcheat;
+  *x = (*x + SCR_WIDTH/2) - center_x;
+  *y = (*y + SCR_HEIGHT/2) - center_y;
+}
+
 
 void clear_visible()
 {
@@ -241,7 +273,7 @@ void clear_visible()
   /* Clear the physical screen. */
   RectangleType r;
   RctSetRectangle(&r, 0, 23, 160, 114);
-  WinEraseRectangle(&r, 0);
+  qWinEraseRectangle(&r, 0);
 
   /* Update 'terminal' to represent the cleared screen. */
   for (i = 0 ; i < v_h; i++) {
@@ -519,7 +551,7 @@ void tmp_at(Int8 x, Int8 y)
 {
   tmp_at_erase(my_ufo.prev.x, my_ufo.prev.y);
   if (cansee(x, y)) {
-    WinDrawChars(&my_ufo.let, 1, 10, 10);
+    //    WinDrawChars(&my_ufo.let, 1, 10, 10); // XXX debug
     animate_char(y, x, my_ufo.let, false);
   }
   SysTaskDelay(SysTicksPerSecond()/16); // probably a nonoptimal location/delay
@@ -973,13 +1005,14 @@ Char ScratchBuffer[BIGBUF]; // (definitely needs to be way more than 80)
 void message(const Char *buf)
 {
   Word curfrm = FrmGetActiveFormID();
-  Short i;
+  Short i, new_msgs_ctr = 1;
   Char *tmp;
   if (curfrm == MainForm ||
       curfrm == SenseForm ||
       curfrm == Chargen1Form ||
       curfrm == Chargen2Form ||
       curfrm == InvForm ||
+      curfrm == InvMsgForm ||
       curfrm == InvActionForm) {    // Log a message for later display
     if (!buf) return;
     tmp = old_messages[0];
@@ -994,12 +1027,14 @@ void message(const Char *buf)
       // than TWO screen widths when word-wrapped.
       Short wrap_len = FntWordWrap(tmp, SCR_WIDTH);//How much fits on 1st line.
       if (FntCharsWidth(tmp+wrap_len, StrLen(tmp+wrap_len)) > SCR_WIDTH) {
+	new_msgs_ctr++;
 	// This message would require three (or more) lines.  (it's a fortune.)
 	// Split it after the second line.
 	wrap_len += FntWordWrap(tmp+wrap_len, SCR_WIDTH);
 	// Truncate here.  Copy the remainder from buf to a new 'tmp'.
 	if (wrap_len >= SAVED_MSG_LEN-2) wrap_len = SAVED_MSG_LEN-2;
 	tmp[wrap_len] = '\n';
+	tmp[wrap_len-1] = '!'; // XXX DEBUGGING
 	tmp[wrap_len+1] = '\0';
 	old_messages[SAVED_MSGS-1] = tmp;	
 	tmp = old_messages[0];
@@ -1013,11 +1048,12 @@ void message(const Char *buf)
     }
     old_messages[SAVED_MSGS-1] = tmp;
     // this part is for "--more--" ability:
-    if (curfrm != InvForm) // don't re-show inv messages on exit!
+    if ((curfrm != InvForm && curfrm != InvActionForm) || ROBOTFINDSKITTEN)
+      // don't re-show inv messages on exit!  also...
       if (command_count <= 0 || (0 != StrCompare(old_messages[SAVED_MSGS-1],
 						 old_messages[SAVED_MSGS-2])))
 	// don't --more-- a count_message if it's the same as the previous one
-	last_old_message_shown--;
+	last_old_message_shown -= new_msgs_ctr;
     if (last_old_message_shown < 0) // "none of these msgs have been shown"
       last_old_message_shown = -1;
     // Remember that we have something to display
@@ -1027,11 +1063,14 @@ void message(const Char *buf)
 
   if (curfrm == InvForm || curfrm == InvActionForm) {
     // These messages should also be printed straightaway.
-    RectangleType r;
-    RctSetRectangle(&r,0,128,156,11);
-    WinEraseRectangle(&r, 0);
-    if (buf)
-      WinDrawChars(buf, StrLen(buf), 1, 128);
+    // XXX or maybe I should pop up a message window, like robotfindskitten?
+    if (!ROBOTFINDSKITTEN) {
+      RectangleType r;
+      RctSetRectangle(&r,0,128,156,11);
+      WinEraseRectangle(&r, 0);
+      if (buf)
+	WinDrawChars(buf, StrLen(buf), 1, 128);
+    }
     // Make sure there's at least a moment to read it, if we have
     // several messages to print ("You wear x" "Oops, cursed!" "The foo hits")
     // SysTaskDelay(SysTicksPerSecond());
@@ -1045,6 +1084,8 @@ void alert_message(Char *buf)
   //  RctSetRectangle(&r,0,134,160,160-134); /* left,top, width and height */
   //RctSetRectangle(&r,0,StatsTopY,160,MsgBotY-StatsTopY);/* x,y, W, and H */
   RctSetRectangle(&r, 0, MsgTopY, 160, 11+4); /* x,y, W, and H */
+  // XXX Why is that "11+4" ???
+  RctSetRectangle(&r, 0, MsgTopY, 160, 11+11); /* x,y, W, and H */
   qWinEraseRectangle(&r, 0); /* 0 for square corners */
   //  if (buf)
   //    WinDrawChars(buf, StrLen(buf), 1, 134);
@@ -1082,7 +1123,7 @@ void show_all_messages()
   while (last_old_message_shown < SAVED_MSGS-1) {
     show_messages();
     if (last_old_message_shown < SAVED_MSGS-1) {
-      show_a_more(2, true); // invert the more
+      show_a_more(SCR_WIDTH, 2*LineHeight, true); // invert the more
       SysTaskDelay((3*SysTicksPerSecond())/2); // XXXX
     }
   }
@@ -1105,8 +1146,12 @@ void show_messages()
   //RctSetRectangle(&r,0,134,160,160-134); /* left,top, width and height */
   RctSetRectangle(&r,0,MsgTopY,160,MsgBotY-MsgTopY); /* x,y, W, and H */
 
-  if (curfrm != MainForm && curfrm != SenseForm) // xxxx adding SenseForm.
+  if (curfrm != MainForm && curfrm != SenseForm) { // xxxx adding SenseForm.
+    if (ROBOTFINDSKITTEN && (curfrm == InvForm || curfrm == InvActionForm)
+	&& !you.dead) 
+      FrmPopupForm(InvMsgForm);
     return; // XXX otherwise inventory form title is lost
+  }
 
   // if there's nothing to print, just print stats.
   if (last_old_message_shown >= SAVED_MSGS-1) {
@@ -1141,7 +1186,7 @@ void show_messages()
     } // finished all messages or ran out of space.
     if ((last_old_message_shown < SAVED_MSGS-1)/* || (last_command == 'I')*/)
       //show_a_more(lines_used); // prompt for the Any Key with "--more--"
-      show_a_more(2, false); // prompt for the Any Key with "--more--"
+      show_a_more(SCR_WIDTH, 2*LineHeight, false);//prompt for the Any Key with "--more--"
     else {
       if (lines_used > 1)	// see if there was room for hit points
 	; //print_stats_hp(str_width); // this will decide whether to print them
@@ -1157,7 +1202,7 @@ void show_messages()
 }
 // This is what prints the MORE in lower right corner of screen.
 // A couple non-display.c routines also would like to use it..
-void show_a_more(Short lines_used, Boolean invert)
+void show_a_more(Short w, Short y0, Boolean invert)
 {
   DWord version;
   Boolean large = false;
@@ -1172,8 +1217,9 @@ void show_a_more(Short lines_used, Boolean invert)
 #endif
   //    WinDrawChars("--more--", 8, 120, 134 + 11*lines_used);
   //WinDrawChars("MORE", 8, (large ? 130 : 140), 134 + 11*lines_used - 3);
-  x = (large ? 130 : 140);
-  y = MsgTopY + 11*lines_used - 5;
+  x = w - (large ? 30 : 20);
+  //  y = MsgTopY + 11*lines_used - 5;
+  y = MsgTopY + y0 - 5;
   if (invert)
     qWinDrawInvertedChars("MORE", 4, x, y);
   else
@@ -1313,22 +1359,22 @@ void print_stats(UInt which_stats)
     qWinEraseRectangle(&r, 0);
     x = 0; 
     k = 0;
-    WinDrawChars("L", 1, x, y);
+    qWinDrawChars("L", 1, x, y);
     x += stats_x[k++]; // 0
     x += stats_x[k++]; // 1
-    WinDrawChars("Hp", 2, x, y);
+    qWinDrawChars("Hp", 2, x, y);
     x += stats_x[k++]; // 2
     x += stats_x[k++]; // 3
-    WinDrawChars("Ac", 2, x, y);
+    qWinDrawChars("Ac", 2, x, y);
     x += stats_x[k++]; // 4
     x += stats_x[k++]; // 5
-    WinDrawChars("Str", 3, x, y);
+    qWinDrawChars("Str", 3, x, y);
     k += 2; // skip 6 and 7
     x = 0;
     y += LineHeight;
     RctSetRectangle(&r, 0, y, SCR_WIDTH, LineHeight);
     qWinEraseRectangle(&r, 0);
-    WinDrawChars("Exp", 3, x, y);
+    qWinDrawChars("Exp", 3, x, y);
     x += stats_x[k++]; // 8
     x += stats_x[k++]; // 9
     // (skip 10 and 11)
@@ -1341,21 +1387,21 @@ void print_stats(UInt which_stats)
   if (flags.botl & BOTL_DLEVEL) {
     RctSetRectangle(&r, x,y, stats_x[k], LineHeight); qWinEraseRectangle(&r,0);
     StrPrintF(buf, "%d", dlevel); // dungeon level:  dlevel.  Max of 40.
-    WinDrawChars(buf, StrLen(buf), x, y);
+    qWinDrawChars(buf, StrLen(buf), x, y);
   }
   x += stats_x[k++]; // 1
   x += stats_x[k++]; // 2
   if (flags.botl & BOTL_HP) {
     RctSetRectangle(&r, x,y, stats_x[k], LineHeight); qWinEraseRectangle(&r,0);
     StrPrintF(buf, "%d(%d)", you.uhp, you.uhpmax); // hp. guessing max is 999??
-    WinDrawChars(buf, StrLen(buf), x, y);
+    qWinDrawChars(buf, StrLen(buf), x, y);
   }
   x += stats_x[k++]; // 3
   x += stats_x[k++]; // 4
   if (flags.botl & BOTL_AC) {
     RctSetRectangle(&r, x,y, stats_x[k], LineHeight); qWinEraseRectangle(&r,0);
     StrPrintF(buf, "%d", you.uac); // Don't know if this is limited..
-    WinDrawChars(buf, StrLen(buf), x, y);
+    qWinDrawChars(buf, StrLen(buf), x, y);
   }
   x += stats_x[k++]; // 5
   x += stats_x[k++]; // 6
@@ -1367,7 +1413,7 @@ void print_stats(UInt which_stats)
       StrPrintF(buf, "%d%s%d", 18, 
 		((you.ustr < 18+10) || (you.ustr > 18+99)) ? "/0" : "/",
 		(you.ustr > 18+99) ? 0 : you.ustr-18 );
-    WinDrawChars(buf, StrLen(buf), x, y);
+    qWinDrawChars(buf, StrLen(buf), x, y);
   }
   k++; // skip 7
   x = 0;
@@ -1376,25 +1422,25 @@ void print_stats(UInt which_stats)
   if (flags.botl & BOTL_EXP) {
     RctSetRectangle(&r, x,y, stats_x[k], LineHeight); qWinEraseRectangle(&r,0);
     StrPrintF(buf, "%d/%ld", you.ulevel, you.uexp);//don't know if uexp limited
-    WinDrawChars(buf, StrLen(buf), x, y);
+    qWinDrawChars(buf, StrLen(buf), x, y);
   }
   x += stats_x[k++]; // 9
   if (flags.botl & BOTL_HUNGER) {
     RctSetRectangle(&r, x,y, stats_x[k], LineHeight); qWinEraseRectangle(&r,0);
     StrPrintF(buf, "%s", hunger_str[you.uhs]);
-    WinDrawChars(buf, StrLen(buf), x, y);
+    qWinDrawChars(buf, StrLen(buf), x, y);
   }
   x += stats_x[k++]; // 10
   if (true) {
     RctSetRectangle(&r, x,y, stats_x[k], LineHeight); qWinEraseRectangle(&r,0);
     if (moves >= 1000000000L) {
       StrPrintF(buf, "%ld", moves); //StrPrintF(buf, "t%ld", moves);
-      WinDrawChars(buf, StrLen(buf), x, y);
+      qWinDrawChars(buf, StrLen(buf), x, y);
       x += stats_x[k++]; // 11
     } else {
       StrPrintF(buf, "%ld", moves); //StrPrintF(buf, "t %ld", moves);
       x += stats_x[k++]; // 11
-      WinDrawChars(buf, StrLen(buf), x - FntCharsWidth(buf, StrLen(buf)), y);
+      qWinDrawChars(buf, StrLen(buf), x - FntCharsWidth(buf, StrLen(buf)), y);
     }
   }
 

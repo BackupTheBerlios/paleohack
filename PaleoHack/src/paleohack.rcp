@@ -5,7 +5,7 @@
 
 #include "paleohackRsc.h"
 
-VERSION ID 1 "0.01"
+VERSION ID 1 "0.02"
 
 ICONFAMILY "paleohack.bmp" "" "" "paleohackC.bmp" TRANSPARENT 255 255 255
 SMALLICONFAMILY "paleohackSmall.bmp" "" "" "paleohackSmallC.bmp" TRANSPARENT 255 255 255
@@ -92,6 +92,7 @@ BEGIN
     END
     PULLDOWN "Set"
     BEGIN
+	MENUITEM "Preferences "       ID menu_mainPrefs
 	MENUITEM "Font   "            ID menu_mainFont "F"
 	MENUITEM SEPARATOR
         MENUITEM "Redraw"      ID menu_mainRedraw
@@ -153,7 +154,7 @@ BEGIN
 	TITLE "About PaleoHack"
 	FORMBITMAP AT (8 19) BITMAP bitmap_cat
 	FORMBITMAP AT (98 15) BITMAP bitmap_ph
-	LABEL "PaleoHack v0.01" AUTOID AT (84 40)
+	LABEL "PaleoHack v0.02" AUTOID AT (84 40)
 	LABEL "A port of" AUTOID AT (PrevLeft PrevTop+11)
 	LABEL "Andries Brouwer's" AUTOID AT (PrevLeft PrevTop+11)
 	LABEL "Hack 1.0.3" AUTOID AT (PrevLeft PrevTop+11)
@@ -214,7 +215,7 @@ END
 
 MENU ID InvFormMenu
 BEGIN
-    PULLDOWN "Extras"
+    PULLDOWN "Actions"
     BEGIN
         MENUITEM "Dip it"       ID menu_invDip "D"
         MENUITEM "Name it"       ID menu_invName "N"
@@ -222,8 +223,23 @@ BEGIN
         MENUITEM "Wield"      ID menu_invWield "W"
         MENUITEM "Engrave with"      ID menu_invEngrave "E"
     END
+    PULLDOWN "Info"
+    BEGIN
+	MENUITEM "Message Log   "     ID menu_invMsgs "L"
+    END
 END
 
+
+// STOLEN from robotfindskitten: InvMsgForm, nee ThingForm.
+//   [probably]only needs 3 lines.  each line is 11 pixels high.
+//   eh, might as well give it four though.
+//   (156 - 44) / 2 = 56.  make y 56 to center vertically
+//   make height 4*11 = THINGFORM_H.
+FORM ID InvMsgForm AT (2 56-3 156 THINGFORM_H+6)
+USABLE
+MODAL
+BEGIN
+END
 
 
 FORM ID EngraveForm AT (2 63 156 95)
@@ -290,6 +306,38 @@ END
 
 
 
+// don't have a font checkbox;
+// just remember the Most Recently Used font.
+// do need:
+//   invert; color; sound; hole/donut; relative move
+// "maybe worth it" hack options:
+//   time (turn off the 'turns' counter in stats bar)
+// questionable hack options:
+// rest_on_space; news; null; tombstone; (fe)male; name; endgame
+//HELPID PrefsHelpStr
+FORM ID PrefsForm AT (2 2 156 156)
+USABLE
+MODAL
+DEFAULTBTNID btn_prefs_cancel
+BEGIN
+   TITLE "Preference Settings"
+   CHECKBOX "Relative move." ID check_prf_2 AT (3 15+17 AUTO AUTO)
+   CHECKBOX "Show circles." ID check_prf_3 AT (PrevLeft PrevTop+11 AUTO AUTO) NONUSABLE
+
+   CHECKBOX "Sound." ID check_prf_4 AT (PrevLeft PrevTop+11 AUTO AUTO)
+   CHECKBOX "Invert (black bg)." ID check_prf_13 AT (PrevLeft PrevTop+11 AUTO AUTO)
+   CHECKBOX "Color." ID check_prf_14 AT (PrevLeft PrevTop+11 AUTO AUTO) NONUSABLE
+
+
+   LABEL "Hole" label_prf_1 AT (105 13)
+   LIST "10" "20" "30" "40" ID list_prf_1 AT (PrevLeft PrevBottom 15 44) VISIBLEITEMS 4
+   LABEL "Donut" label_prf_2 AT (128 13)
+   LIST "10" "20" "30" "40" ID list_prf_2 AT (PrevLeft+6 PrevBottom 15 44) VISIBLEITEMS 4
+
+   BUTTON "Ok" ID btn_prefs_ok AT (5 141 35 AUTO)
+   BUTTON "Cancel" ID btn_prefs_cancel AT (PrevRight+7 PrevTop 35 AUTO)
+END
+
 
 
 
@@ -331,11 +379,11 @@ END
 
 ALERT ID RightLeftP
 CONFIRMATION
-DEFAULTBUTTON 0
+DEFAULTBUTTON 2
 BEGIN
-	TITLE "Right or left?"
-	MESSAGE "Which ring-finger?"
-	BUTTON "Right" "Left"
+	TITLE "Which ring-finger?"
+	MESSAGE "^1: ^2 or ^3?"
+	BUTTON "Right" "Left" "Cancel"
 END
 
 ALERT ID EatFloorP
@@ -365,11 +413,19 @@ BEGIN
 	BUTTON "Long" "Short"
 END
 
+ALERT ID MonsterInfoP
+CONFIRMATION
+DEFAULTBUTTON 1
+BEGIN
+	TITLE "More info?"
+	MESSAGE "You remember reading something about ^1once..."
+	BUTTON "Ok" "Cancel"
+END
 
 
 STRING LicenseStr "Hack 1.0.3 is © 1985 Andries Brouwer, Stichting "\
                   "Mathematich Centrum (Amsterdam);\n"\
-                  "PaleoHack v 0.01 is "\
+                  "PaleoHack v 0.02 is "\
                   "© 2001 Andries Brouwer, Stichting "\
                   "Mathematich Centrum, Bridget Spitznagel.\n"\
                   "This game is freeware.  Source is available under the\n"\
@@ -512,3 +568,145 @@ STRING Help2Str "y  k  u    MOVE COMMANDS:\n"\
 ".         rest    wait a moment\n"\
 ",         pickup  pick up all you can carry\n"\
 ":         look    look at what is here"
+
+
+
+STRING Specify_w "From its teeth the crysknife can be manufactured."
+STRING Specify_x "The xan were animals sent to prick the legs of the "\
+	"Lords of Xibalba."
+STRING Specify_z "The zruty are wild and gigantic beings, living in "\
+	"the wildernesses of the Tatra mountains."
+
+STRING Specify_C "Of all the monsters put together by the Greek imagination the Centaurs " \
+  "(Kentauroi) constituted a class in themselves.  Despite a strong " \
+  "streak of sensuality in their make-up, their normal behaviour was " \
+  "moral, and they took a kindly thought of man's welfare. The attempted " \
+  "outrage of Nessos on Deianeira, and that of the whole tribe of " \
+  "Centaurs on the Lapith women, are more than offset by the hospitality " \
+  "of Pholos and by the wisdom of Cheiron, physician, prophet, lyrist, " \
+  "and the instructor of Achilles.  Further, the Centaurs were peculiar " \
+  "in that their nature, which united the body of a horse with the trunk " \
+  "and head of a man, involved an unthinkable duplication of vital organs " \
+  "and important members. So grotesque a combination seems almost " \
+  "un-Greek.  These strange creatures were said to live in the caves and " \
+  "clefts of the mountains, myths associating them especially with the " \
+  "hills of Thessaly and the range of Erymanthos. " \
+  "\n[Mythology of all races, Vol. 1, pp. 270-271]"
+
+STRING Specify_D "In the West the dragon was the natural enemy of man.  Although " \
+  "preferring to live in bleak and desolate regions, whenever it was seen " \
+  "among men it left in its wake a trail of destruction and disease. Yet " \
+  "any attempt to slay this beast was a perilous undertaking. For the " \
+  "dragon's assailant had to contend not only with clouds of sulphurous " \
+  "fumes pouring from its fire-breathing nostrils, but also with the " \
+  "thrashings of its tail, the most deadly part of its serpent-like body. " \
+  "\n[From: Mythical Beasts by Deirdre Headon (The Leprechaun Library)]"
+
+STRING Specify_G "... And then a gnome came by, carrying a bundle, an old fellow three " \
+  "times as large as an imp and wearing clothes of a sort, especially a " \
+  "hat. And he was clearly just as frightened as the imps though he could " \
+  "not go so fast. Ramon Alonzo saw that there must be some great trouble " \
+  "that was vexing magical things; and, since gnomes speak the language " \
+  "of men, and will answer if spoken to gently, he raised his hat, and " \
+  "asked of the gnome his name.  The gnome did not stop his hasty shuffle " \
+  "a moment as he answered 'Alaraba' and grabbed the rim of his hat but " \
+  "forgot to doff it.  \n'What is the trouble, Alaraba?' said Ramon " \
+  "Alonzo.  \n'White magic. Run!' said the gnome ...  \n[From: The " \
+  "Charwoman's Shadow, by Lord Dunsany.]"
+
+STRING Specify_H "Hobgoblin. Used by the Puritans and in later times for wicked goblin " \
+  "spirits, as in Bunyan's 'Hobgoblin nor foul friend', but its more " \
+  "correct use is for the friendly spirits of the brownie type.  In 'A " \
+  "midsummer night's dream' a fairy says to Shakespeare's Puck:\n " \
+  "\nThose that Hobgoblin call you, and sweet Puck, " \
+  "\nYou do their work, and they shall have good luck: " \
+  "\nAre you not he? " \
+  "\n\n " \
+  "and obviously Puck would not wish to be called a hobgoblin if that was " \
+  "an ill-omened word.\n " \
+  "Hobgoblins are on the whole, good-humoured and ready to be helpful, " \
+  "but fond of practical joking, and like most of the fairies rather " \
+  "nasty people to annoy. Boggarts hover on the verge of hobgoblindom. " \
+  "Bogles are just over the edge.  One Hob mentioned by Henderson, was " \
+  "Hob Headless who haunted the road between Hurworth and Neasham, but " \
+  "could not cross the little river Kent, which flowed into the Tess.  He " \
+  "was exorcised and laid under a large stone by the roadside for " \
+  "ninety-nine years and a day. If anyone was so unwary as to sit on that " \
+  "stone, he would be unable to quit it for ever.  The ninety-nine years " \
+  "is nearly up, so trouble may soon be heard of on the road between " \
+  "Hurworth and Neasham. " \
+  "\n[Katharine Briggs, A  dictionary  of Fairies]"
+
+STRING Specify_L "The Irish Leprechaun is the Faeries' shoemaker and is known under " \
+  "various names in different parts of Ireland: Cluricaune in Cork, " \
+  "Lurican in Kerry, Lurikeen in Kildare and Lurigadaun in Tipperary. " \
+  "Although he works for the Faeries, the Leprechaun is not of the same " \
+  "species. He is small, has dark skin and wears strange clothes.  His " \
+  "nature has something of the manic-depressive about it: first he is " \
+  "quite happy, whistling merrily as he nails a sole on to a shoe; a few " \
+  "minutes later, he is sullen and morose, drunk on his home-made heather " \
+  "ale. The Leprechaun's two great loves are tobacco and whiskey, and he " \
+  "is a first-rate con-man, impossible to out-fox.  No one, no matter how " \
+  "clever, has ever managed to cheat him out of his hidden pot of gold or " \
+  "his magic shilling. At the last minute he always thinks of some way to " \
+  "divert his captor's attention and vanishes in the twinkling of an eye. " \
+  "\n[From: A Field Guide to the Little People by Nancy Arrowsmith & " \
+  "George Moorse. ]"
+
+STRING Specify_c "Once in a great while, when the positions of the stars are just right, " \
+  "a seven-year-old rooster will lay an egg. Then, along will come a " \
+  "snake, to coil around the egg, or a toad, to squat upon the egg, " \
+  "keeping it warm and helping it to hatch. When it hatches, out comes a " \
+  "creature called basilisk, or cockatrice, the most deadly of all " \
+  "creatures. A single glance from its yellow, piercing toad's eyes will " \
+  "kill both man and beast. Its power of destruction is said to be so " \
+  "great that sometimes simply to hear its hiss can prove fatal.  Its " \
+  "breath is so venomenous that it causes all vegetation to wither. " \
+  "There is, however, one creature which can withstand the basilisk's " \
+  "deadly gaze, and this is the weasel. No one knows why this is so, but " \
+  "although the fierce weasel can slay the basilisk, it will itself be " \
+  "killed in the struggle. Perhaps the weasel knows the basilisk's fatal " \
+  "weakness: if it ever sees its own reflection in a mirror it will " \
+  "perish instantly. But even a dead basilisk is dangerous, for it is " \
+  "said that merely touching its lifeless body can cause a person to " \
+  "sicken and die. " \
+  "\n[From: Mythical Beasts by Deirdre Headon (The Leprechaun Library) " \
+  "and other sources. ]"
+
+STRING Specify_i "... imps ... little creatures of two feet high that could gambol and " \
+  "jump prodigiously; ... " \
+  "\n[From: The Charwoman's Shadow, by Lord Dunsany.] " \
+  "\n\n " \
+  "An 'imp' is an off-shoot or cutting. Thus an 'ymp tree' was a grafted " \
+  "tree, or one grown from a cutting, not from seed.  'Imp' properly " \
+  "means a small devil, an off-shoot of Satan, but the distinction " \
+  "between goblins or bogles and imps from hell is hard to make, and many " \
+  "in the Celtic countries as well as the English Puritans regarded all " \
+  "fairies as devils.  The fairies of tradition often hover uneasily " \
+  "between the ghostly and the diabolic state. " \
+  "\n[Katharine Briggs, A dictionary of Fairies]"
+
+STRING Specify_t "The tengu was the most troublesome creature of Japanese legend.  Part " \
+  "bird and part man, with red beak for a nose and flashing eyes, the " \
+  "tengu was notorious for stirring up feuds and prolonging enmity " \
+  "between families. Indeed, the belligerent tengus were supposed to have " \
+  "been man's first instructors in the use of arms.  \n[From: Mythical " \
+  "Beasts by Deirdre Headon (The Leprechaun Library). ]"
+
+STRING Specify_u "Men have always sought the elusive unicorn, for the single twisted " \
+  "horn which projected from its forehead was thought to be a powerful " \
+  "talisman. It was said that the unicorn had simply to dip the tip of " \
+  "its horn in a muddy pool for the water to become pure. Men also " \
+  "believed that to drink from this horn was a protection against all " \
+  "sickness, and that if the horn was ground to a powder it would act as " \
+  "an antidote to all poisons. Less than 200 years ago in France, the " \
+  "horn of a unicorn was used in a ceremony to test the royal food for " \
+  "poison.\n " \
+  "Although only the size of a small horse, the unicorn is a very fierce " \
+  "beast, capable of killing an elephant with a single thrust from its " \
+  "horn.  Its fleetness of foot also makes this solitary creature " \
+  "difficult to capture. However, it can be tamed and captured by a " \
+  "maiden. Made gentle by the sight of a virgin, the unicorn can be lured " \
+  "to lay its head in her lap, and in this docile mood, the maiden may " \
+  "secure it with a golden rope. " \
+  "\n[From: Mythical Beasts by Deirdre Headon (The Leprechaun Library). ]"
