@@ -143,7 +143,7 @@ void justswld(monst_t *mtmp, Char *name)
   you.ustuck = mtmp;
   pmon(mtmp);
   kludge("%s swallows you!", name);
-  // more(); // XXXX argh need a "hit any key to proceed"; not implemented yet.
+  wait_for_event(); // more(); // XXXX need to test.  "hit any key to proceed"
   seeoff(true);
   you.uswallow = true;
   you.uswallowedtime = 0;
@@ -644,8 +644,8 @@ void poisoned(Char *string, Char *pname)
   }
   if (you.uhp < 1) {
     // (pname is either a pointer into mon_names or a const text string.)
-    killer = pname; // xxx not implemented yet
-    done("died"); // xxx
+    killer = pname;
+    done("died");
     return;
   }
 }
@@ -656,8 +656,8 @@ void mondead(monst_t *mtmp)
   unpmon(mtmp);
   unlink_mon(mtmp);
   unstuck(mtmp);
-  //  if (mtmp->isshk) shkdead(mtmp);
-  //  if (mtmp->isgd) gddead();
+  if (mtmp->bitflags & M_IS_SHOPKEEPER) shkdead(mtmp);
+  if (mtmp->bitflags & M_IS_GUARD) gddead();
 #ifndef NOWORM
   if (mtmp->wormno) wormdead(mtmp);
 #endif NOWORM

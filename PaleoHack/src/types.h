@@ -352,5 +352,37 @@ typedef struct prev_state_s {
   Short count; // "command_count"
   //  Short item; // index in inventory
   obj_t *item;
+  monst_t *mon; // (nearly always NULL)
   Short spell; // for repeating 'm' and 'p'
 } previous_state;
+
+
+typedef struct HackPreferenceType_s
+{
+  /* ... */
+  Short run_walk_border;
+  Short walk_center_border;
+  Short hardware[8]; // what bindings in dungeon screen
+  Boolean use_hardware; // (buttons)
+  Char name[PL_NSIZ];
+  Boolean is_male;
+  Boolean big_font;
+  Boolean relative_move;
+  Boolean sound;
+  Boolean run;
+  //  Boolean auto_pickup;
+  Boolean black_bg;
+  Boolean color_on;
+  Boolean no_animations;
+} HackPreferenceType;
+// Hack options:
+// female = duh.  This and name should go in FIRST startup screen,
+//                read them from prefs and write any changes to prefs.
+//                (they should not be accessible elsewhere.)
+// time = show "%ld moves" in the status bar
+// nonews = whether to show contents of 'news' file        (kinda obsolete)
+// standout = whether "--more--" and your score in top10  should be inverted.
+// nonull = something to do with artificial delay
+// no_rest_on_space = basically what you think.
+// invlet_constant,= whether inv letters should stay constant when dropped
+// notombstone, end_own, end_top, end_around = customizing post-death display.

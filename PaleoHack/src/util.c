@@ -2,7 +2,8 @@
  * paleohack - Hack 1.0.3 for PalmOS.                                *
  * This file is copyright (C) 2001 Bridget Spitznagel                *
  *********************************************************************/
-#include "palm.h"
+#include "paleohack.h" // needed for my_prefs.sound
+//#include "palm.h"
 #include <DLServer.h> /* needed for user name */
 #ifdef I_AM_COLOR
 #include <SystemMgr.h> /* needed for user name */
@@ -185,7 +186,7 @@ void do_feep(Long frq, UInt dur)
 {
   SystemPreferencesChoice allgamesound;
 
-  //   if (!my_prefs.sound) return;  // XXXX uncomment this when I have prefs!
+  if (!my_prefs.sound) return;
 
 #ifdef I_AM_OS_2
   allgamesound = prefGameSoundLevel;

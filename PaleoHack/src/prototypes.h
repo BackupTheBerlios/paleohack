@@ -11,6 +11,7 @@ Boolean Map_Form_HandleEvent(EventPtr e) SEC_1;
 Boolean Inv_Form_HandleEvent(EventPtr e) SEC_1;
 Boolean InvAction_Form_HandleEvent(EventPtr e) SEC_4;
 Boolean getobj_init(Char *let, Char *word, UChar action) SEC_4;
+Boolean ObjType_Form_HandleEvent(EventPtr e);// SEC_5; // debugging
 Boolean Sense_Form_HandleEvent(EventPtr e) SEC_1;
 Boolean MsgLog_Form_HandleEvent(EventPtr e) SEC_5;
 Boolean Engrave_Form_HandleEvent(EventPtr e) SEC_5;
@@ -19,6 +20,7 @@ void clone_for_call(obj_t *otmp) SEC_4;
 void engrave_draw() SEC_4;
 void tick();
 void tock();
+void writePrefs();
 
 
 void greet_player();
@@ -62,13 +64,17 @@ Boolean midnight() SEC_1;
 
 // display.c
 //
+void where_in_dungeon(Short scr_x, Short scr_y, Short *dun_x, Short *dun_y);
 void print(Short x, Short y, Short ch); // Equivalent of "atl"
 void on_scr(Short x, Short y); // results aren't being used since nscr !exists
 void check_rogue_position(Boolean centered);
 void refresh();
 void nscr(); // get rid of this if poss? or make it and refresh call a backend
 void animate_char(Short y, Short x, Char c, Boolean bold);
-void tmp_at(Int8 x, Int8 y); // XXX not implemented yet!
+void tmp_at_init(Char c) SEC_5;
+void tmp_at_newsymbol(Char c) SEC_5;
+void tmp_at_cleanup() SEC_5;
+void tmp_at(Int8 x, Int8 y);
 void Tmp_at_init(Char c);
 void Tmp_at_newsymbol(Char c);
 void Tmp_at_cleanup();
@@ -107,7 +113,7 @@ void print_stats(UInt which_stats);
 
 
 // make_level.c -- this is ""done""
-void makelevel() SEC_1;
+void makelevel() SEC_1; // xxx debug
 Short inroom(Short x, Short y) SEC_1;
 void mktrap(Short num, Short mazeflag, room_t *croom) SEC_1;
 // make_maze.c -- this is ""done""
@@ -119,16 +125,18 @@ PointType mazexy() SEC_1;
 trap_t *maketrap(Short x, Short y, Short trap_type) SEC_1;
 void deltrap(trap_t *trap) SEC_2; // was in invent.c!
 void do_trap(trap_t *trap) SEC_3;
-Short mon_in_trap(monst_t *mtmp) SEC_3; // not implemented yet
+Short mon_in_trap(monst_t *mtmp) SEC_3;
 void selftouch(Char *arg) SEC_2;
 void float_up() SEC_2;
 void float_down() SEC_2;
-void tele() SEC_3; // not implemented yet
+void tele() SEC_3;
+void tele_finish(Short x, Short y, Boolean controlled) SEC_3;
 Boolean dotele() SEC_3;
 void placebc(Boolean attach) SEC_3;
 void unplacebc() SEC_3;
-void level_tele(Short newlevel) SEC_3;
-void drown() SEC_2; // Mostly not yet implemented.
+void level_tele_start() SEC_3;
+void level_tele(Short newlevel, Boolean controlled) SEC_3;
+void drown() SEC_2; // untested
 
 // make_obj.c
 obj_t * mkobj_at(Short symbol, Short x, Short y) SEC_1;
@@ -141,7 +149,7 @@ void mkgold(Long num, Short x, Short y) SEC_2;
 obj_t * addinv(obj_t *obj) SEC_1;
 void useup(obj_t *obj) SEC_2;
 void unlink_inv(obj_t *obj) SEC_2; // was (poorly named) "freeinv"
-void delobj(struct obj *obj) SEC_2; // not impl yet!!
+void delobj(struct obj *obj) SEC_2; 
 void unlink_obj(obj_t *obj) SEC_2; // was (poorly named) "freeobj"
 void freegold(gold_t *gold) SEC_2;
 trap_t *trap_at(Short x, Short y) SEC_2; // was t_at
@@ -151,6 +159,8 @@ obj_t * sobj_at(Short n, Short x, Short y) SEC_2;
 Boolean carried(obj_t *obj) SEC_2;
 Boolean carrying(Short type) SEC_2;
 gold_t * gold_at(Short x, Short y) SEC_2; // was g_at
+Short ggetobj_end(Char *olets, Boolean drop_not_identify,
+		  Boolean allflag, Boolean unpaidflag);// SEC_5; // XXX
 Short askchain(obj_t *objchn, Char *olets, Char *prompt, Boolean allflag, Short (*fn)(), Boolean (*ckfn)(), Short max); // XXX danger will robinson
 void prinv(obj_t *obj);
 void stackobj(obj_t *obj) SEC_1;
@@ -171,7 +181,7 @@ Short mfindpos(monst_t *mon, coord poss[9], // mfindpos was mfndpos
 	       Short info[9], Short flag) SEC_3;
 Short dist(Short x, Short y) SEC_2;
 void poisoned(Char *string, Char *pname) SEC_3;
-void mondead(monst_t *mtmp) SEC_2; // still missing a couple of lines
+void mondead(monst_t *mtmp) SEC_2;
 void replmon(monst_t *mtmp, monst_t *mtmp2) SEC_3;
 void unlink_mon(struct monst *mon) SEC_2; // was (mal)named "relmon"
 void monfree(monst_t *mtmp) SEC_3;
@@ -200,10 +210,10 @@ Short letindex(Char let) SEC_1;
 void init_objects() SEC_1;
 Short probtype(Char c) SEC_1;
 void oinit() SEC_1;
-Boolean dodiscovered() SEC_2; // not impl yet
+Boolean dodiscovered() SEC_2;
 Boolean interesting_to_discover(Short i) SEC_2;
 // make_zoo.c
-void make_shop() SEC_5;
+void make_shop() SEC_5; // xxx debug
 void make_zoo(Short zoo_type) SEC_2;
 void make_swamp() SEC_2;
 // engrave.c
@@ -218,7 +228,7 @@ Short save_engravings_size() SEC_5; // XXX not tested yet
 Short save_engravings(VoidPtr p, Short offset) SEC_5; // XXX not tested yet
 void rest_engravings(VoidPtr *p) SEC_5; // XXX not tested yet
 // level.c
-void mklev() SEC_1; // (trivial)
+void mklev() SEC_1; // (trivial)  // xxx debug
 void savelev(Short lev, Boolean not_bones) SEC_5;
 Short saveobjchn_size(obj_t *otmp) SEC_5;  // xxx these all need testing:
 Short saveobjchn(VoidPtr p, Short offset, obj_t *otmp) SEC_5;
@@ -234,21 +244,22 @@ Boolean dosave() SEC_5; // xxx these need testing too.
 Boolean dorecover() SEC_5;
 // bones.c
 void savebones() SEC_5; // xxx these need testing too.
-Boolean getbones() SEC_5;
+Boolean getbones() SEC_5; // xxx debug
 // end.c
-void unsave();// SEC_5;
+void unsave() SEC_5;
 void done_in_by(monst_t *mtmp) SEC_5;
-void done(Char *st1);// SEC_5;
-Short done_postRIP_size();// SEC_5;
-void done_postRIP(Char *buf);// SEC_5;
+void done(Char *st1) SEC_5;
+Short done_postRIP_size() SEC_5;
+void done_postRIP(Char *buf) SEC_5;
+void draw_topten() SEC_5;
 // movesee.c was hack.c
 void unsee() SEC_4;
 void nomul(Short nval) SEC_1;
 void confdir() SEC_1; // was in cmd.c
 void seeoff(Boolean mode) SEC_1;
-Boolean do_move() SEC_2; // only partly impl
+Boolean do_move() SEC_2;
 Boolean do_pickup() SEC_4;
-void pickup(Boolean all) SEC_1; // mostly impl, missing tiny parts
+void pickup(Boolean all) SEC_1;
 void lookaround() SEC_1;
 Boolean monster_nearby() SEC_2;
 Boolean cansee(Short x, Short y) SEC_2;
@@ -257,7 +268,7 @@ void litroom(Boolean on) SEC_2; // untested
 Short abon() SEC_2;
 Short dbon() SEC_2;
 void losestr(Short num) SEC_2;
-void losehp(Short n, Char *knam) SEC_2; // death-check is not impl yet
+void losehp(Short n, Char *knam) SEC_2; // death-check might be screwy
 void losehp_m(Short n, struct monst *mtmp) SEC_2; // ditto
 Long newuexp() SEC_1;
 void losexp() SEC_2;
@@ -282,7 +293,7 @@ Boolean do_remove_ring(obj_t *otmp) SEC_1; // was doremring
 Boolean armoroff(obj_t *otmp) SEC_1;
 Boolean do_wear_armor(obj_t *otmp) SEC_1; // was doweararm
 Boolean do_wear_ring(obj_t *otmp) SEC_1;
-void ringoff(obj_t *obj) SEC_1; // not fully implemented yet (death case)
+void ringoff(obj_t *obj) SEC_1;
 void find_ac() SEC_1;
 void slippery_fingers() SEC_1; // was "glibr()"
 obj_t * some_armor() SEC_1;
@@ -303,20 +314,23 @@ Boolean do_id_trap() SEC_4; // untested
 void wakeup(monst_t *mtmp) SEC_1;
 void see_mimic(monst_t *mtmp) SEC_1; // untested
 // do_name.c
+void do_mname(monst_t *mtmp, Char *new_name) SEC_5;
 void do_name(obj_t *otmp, Char *new_name) SEC_4;
 void do_call(obj_t *otmp, Char *new_name) SEC_4;
 Boolean oc_has_uname(Short otype) SEC_4;
 Char *oc_get_uname(Short otype) SEC_4;
 Char * monnam(monst_t *mtmp) SEC_1;
+void lmonnam(monst_t *mtmp, Char *buf);// SEC_1; // like xmonnam
 Char * Monnam(monst_t *mtmp) SEC_1;
 Char * amonnam(monst_t *mtmp, Char *adj) SEC_1;
 Char * Amonnam(monst_t *mtmp, Char *adj) SEC_1;
 Char * Xmonnam(monst_t *mtmp) SEC_1;
 // drop.c
-Boolean drop(obj_t *obj) SEC_2; // only half-implemented (needs drop gold)
-void dropx(obj_t *obj) SEC_1;
+Short drop(obj_t *obj) SEC_5;
+void dropx(obj_t *obj) SEC_5;
+Boolean do_throw() SEC_5; // was dothrow
 // eat.c
-Boolean eat_off_floor() SEC_1; // almost all implemented; missing addtobill
+Boolean eat_off_floor() SEC_1;
 Boolean do_eat(obj_t *otmp);
 void gethungry() SEC_2;
 void morehungry(Short num) SEC_2;
@@ -341,12 +355,13 @@ void hit_message(Char *str, monst_t *mtmp, Char punct) SEC_3; // was 'hit(...)'
 void miss_message(Char *str, monst_t *mtmp) SEC_3; // was 'miss(...)'
 monst_t * bhit(Short ddx, Short ddy, Short range, Char sym,
 	       Boolean call_fhit, obj_t *obj) SEC_3;
-monst_t * boomhit(Short dx, Short dy, Boolean *caught) SEC_3;
+monst_t * boomhit(Short dx, Short dy, Boolean *caught);// SEC_3;
 void buzz(Short type, Short sx, Short sy, Short dx, Short dy) SEC_3;
 void fracture_rock(obj_t *obj) SEC_3;
 // apply.c
-Boolean do_apply(obj_t *obj) SEC_1; // ice box doesn't work yet
+Boolean do_apply(obj_t *obj) SEC_1;
 void use_camera(obj_t *obj) SEC_1;
+Boolean put_in_ice_box(obj_t *obj) SEC_2; // was "in_ice_box"
 Short holetime() SEC_2;
 void dighole() SEC_2;
 Boolean use_pick_axe(obj_t *obj) SEC_1;
@@ -364,9 +379,9 @@ Short gd_move() SEC_4;
 void gddead() SEC_4;
 void replgd(monst_t *mtmp, monst_t *mtmp2) SEC_4;
 // wizard.c
-void amulet() SEC_4; // not implemented yet!
-void inrange(monst_t *mtmp) SEC_4; // not implemented yet!
-Boolean wiz_hit(monst_t *mtmp) SEC_4; // not implemented yet!
+void amulet() SEC_4;
+void inrange(monst_t *mtmp) SEC_4;
+Boolean wiz_hit(monst_t *mtmp) SEC_4;
 // fight.c
 Short hitmm(monst_t *magr, monst_t *mdef) SEC_3;
 void mondied(monst_t *mdef) SEC_3;

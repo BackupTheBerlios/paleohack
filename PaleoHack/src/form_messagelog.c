@@ -35,6 +35,7 @@ Boolean MsgLog_Form_HandleEvent(EventPtr e)
     switch(e->data.ctlSelect.controlID) {
     case btn_ml_ok:
       LeaveForm(); // LeaveForm(true);
+      if (msglog_mode == SHOW_DEAD) draw_topten();
       handled = true;
       break;
     }

@@ -5,6 +5,8 @@
  *********************************************************************/
 #include "paleohack.h"
 
+extern previous_state curr_state;
+
 static void vtele() SEC_3;
 static void teleds(Short nux, Short nuy) SEC_3;
 static Boolean teleok(Short x, Short y) SEC_3;
@@ -331,17 +333,31 @@ static void vtele()
 // I will put these off, because they require UI Frobbing.
 void tele()
 {
-  Short nux,nuy;
-
+  //  Short nux,nuy;
   if (Teleport_control) {
-    coord cc;
+    extern Boolean took_time;
+    //    coord cc;
+    took_time = false;
+    curr_state.cmd = '\024';
+    curr_state.item = NULL;
+    curr_state.mode = MODE_GETCELL;
     message("To what position do you want to be teleported?");
     /* 1: force valid */
-    //    cc = getpos(1, "the desired position"); // XXXXX Not implemented yet
+    //    cc = getpos(1, "the desired position");
     /* possible extensions: introduce a small error if
        magic power is low; allow transfer to solid rock */
-    if (teleok(cc.x, cc.y)) {
-      teleds(cc.x, cc.y);
+  } else {
+    tele_finish(0, 0, false);
+  }
+}
+
+void tele_finish(Short x, Short y, Boolean controlled)
+{
+  Short nux,nuy;
+
+  if (controlled) {
+    if (teleok(x, y)) {
+      teleds(x, y);
       return;
     }
     message("Sorry ...");
@@ -426,7 +442,7 @@ void placebc(Boolean attach)
 
 void unplacebc()
 {
-  if (!carried(uball)){
+  if (!carried(uball)) {
     unlink_obj(uball);
     unpobj(uball);
   }
@@ -435,9 +451,9 @@ void unplacebc()
 }
 
 // Caller must have already prompted user and got 'newlevel' if applicable.
-void level_tele(Short newlevel)
+void level_tele(Short newlevel, Boolean controlled)
 {
-  if (Teleport_control) {
+  if (controlled) {
     /* // This is the sort of thing the caller should do:
     Char buf[BUFSZ];
 
@@ -462,8 +478,8 @@ void level_tele(Short newlevel)
     } else {
       message("You burn to a crisp.");
       dlevel = maxdlevel = newlevel;
-      killer = "visit to the hell"; // xxx not implemented yet
-      done("burned"); // xxx 
+      killer = "visit to the hell";
+      done("burned");
       return;
     }
   }
@@ -472,13 +488,14 @@ void level_tele(Short newlevel)
     message("You are now high above the clouds ...");
     if (Levitation) {
       message("You float gently down to earth.");
-      //      done("escaped"); // xxx not implemented yet
+      done("escaped");
+      return;
     }
     message("Unfortunately, you don't know how to fly.");
     message("You fall down a few thousand feet and break your neck.");
     dlevel = 0;
-    killer = "fall"; // xxx not implemented yet
-    done("died"); // xxx
+    killer = "fall";
+    done("died");
     return;
   }
 
@@ -486,25 +503,23 @@ void level_tele(Short newlevel)
 }
 
 
-void drown() // Mostly not implemented yet.
+void drown() // not tested AT ALL yet
 {
   message("You fall into a pool!");
   message("You can't swim!");
   if (rund(3) < you.uluck+2) {
     /* most scrolls become unreadable */
-    /*
-    struct obj *obj;
-
-    for (obj = invent; obj; obj = obj->nobj)
+    obj_t *obj;
+    for (obj = invent ; obj ; obj = obj->nobj)
       if (obj->olet == SCROLL_SYM && rund(12) > you.uluck)
 	obj->otype = SCR_BLANK_PAPER;
-    */
-	/* we should perhaps merge these scrolls ?  */
+    /* we should perhaps merge these scrolls ?  */ // if you say so.
     message("You attempt a teleport spell.");	// utcsri!carroll
-    /*
-    (void) dotele();
-    if (levl[(Short) you.ux][(Short) you.uy].typ != POOL) return;
-    */
+
+    dotele();
+    if (get_cell_type(floor_info[(Short) you.ux][(Short) you.uy]) != POOL)
+      return; // reflexively, you teleport and survive!
+
   }
   message("You drown ...");
   killer = "pool of water";

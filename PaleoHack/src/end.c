@@ -61,13 +61,13 @@ void unsave()
   Short i;
   // Remove the character record and all the level records!
     i = DmNumRecords(phSaveDB);
-    StrPrintF(ScratchBuffer, "%d %d", i, REC_SAVECHAR);
-    WinDrawChars(ScratchBuffer, StrLen(ScratchBuffer), 10, 10);
+    //    StrPrintF(ScratchBuffer, "%d %d", i, REC_SAVECHAR);
+    //    WinDrawChars(ScratchBuffer, StrLen(ScratchBuffer), 10, 10);
   while (DmNumRecords(phSaveDB) > REC_SAVECHAR) {
     DmRemoveRecord(phSaveDB, REC_SAVECHAR);
     i = DmNumRecords(phSaveDB);
-    StrPrintF(ScratchBuffer, "%d", i);
-    WinDrawChars(ScratchBuffer, StrLen(ScratchBuffer), 10, 60-11*i);
+    //    StrPrintF(ScratchBuffer, "%d", i);
+    //    WinDrawChars(ScratchBuffer, StrLen(ScratchBuffer), 10, 60-11*i);
   }
   for (i = 0 ; i < MAXLEVEL+1 ; i++)
     level_exists[i] = false;  
@@ -117,6 +117,7 @@ void done(Char *st1)
 {
   Boolean leftform = false;
   need_rip = false;
+  if (you.dead) return; // hm, we've already been here
 #ifdef WIZARD
   if (wizard && *st1 == 'd') { // (died, drowned)
     you.uswallowedtime = 0;
@@ -444,17 +445,14 @@ static void transition_to_topten()
     WinEraseRectangle(&r, 0);
   }
   need_rip = false;
-  // print some stuff
-  level_message("no score list yet -- hit any key to go on");
-  // XXXX top ten stuff goes here.
-  //      but, it probably shouldn't be printed until AFTER we have
-  //      called done_postRIP etc, because those do modify your score......
-  //      so probably I'll just have the MsgLogForm call another
-  //      function here after its call to LeaveForm().
-
-  // continue to the summary form.  when it's closed, we'll see what we printed
+  // continue to the summary form.  when it's closed, we'll call draw_topten.
   msglog_mode = SHOW_DEAD;
   FrmPopupForm(MsgLogForm);
+}
+
+void draw_topten()
+{
+  level_message("no score list yet -- hit any key to go on");  
 }
 
 
@@ -472,17 +470,17 @@ Boolean Tombstone_Form_HandleEvent(EventPtr e)
     FrmDrawForm(frm);
     if (need_rip)
       draw_tombstone();
-    else 
+    else
       transition_to_topten();
     handled = true;
     break;
 
   case keyDownEvent: case penDownEvent:
     if (need_rip)
-      transition_to_topten();
+      transition_to_topten(); // msglog form will call draw_topten on exit.
     else {
       LeaveForm();
-      FrmGotoForm(Chargen1Form); // xxx need to change this.
+      FrmGotoForm(Chargen1Form); // xxx need to change this.  (I do?)
     }
     handled = true;
     break;

@@ -384,7 +384,7 @@ monst_t * restmonchn(VoidPtr *p)
     diff = (Long) mtmp->data; // CONVERT FROM INDEX TO POINTER.  heh.
     mtmp->data = monbegin + diff;
     if (mtmp->minvent) {
-      WinDrawChars("BOO!", 4, 10, 10);
+      //      WinDrawChars("BOO!", 4, 10, 10);
       check_tag(p, "minv");
       mtmp->minvent = restobjchn(p); // xxx
     }
@@ -563,7 +563,7 @@ void check_tag(VoidPtr *p, Char *tag)
   Short x = 3;
   if (0 != StrNCompare(tag, (Char *)(*p), 4))
     x = 80; // We didn't find the right tag..
-  WinDrawChars(tag, 4, x+dx, y);  y += 11;
+  //  WinDrawChars(tag, 4, x+dx, y);  y += 11; // Uncomment for debugging foo.
   if (y > 160-11) {
     y = 2; dx = 40;
   }

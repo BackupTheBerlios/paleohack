@@ -19,15 +19,15 @@ void timeout()
       if (false) ; //if (upp->p_tofn) (*upp->p_tofn)(); // XXXX not implemented yet!!!!!!
       else switch(upp - you.uprops) {
       case STONED:
-	killer = "cockatrice"; // xxx not implemented yet
-	done("died"); // xxx
+	killer = "cockatrice";
+	done("died");
 	return;
 	break;
       case SICK:
 	message("You die because of food poisoning.");
 
-	killer = oc_names + objects[you.usick_cause_otype].oc_name_offset;//xxx
-	done("died"); // xxx
+	killer = oc_names + objects[you.usick_cause_otype].oc_name_offset;
+	done("died");
 	return;
 	break;
       case FAST:

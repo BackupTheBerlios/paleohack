@@ -33,6 +33,10 @@
 #define btn_cg1_no            1071
 #define btn_cg1_yes           1072
 #define btn_cg1_ok            1073
+#define field_charname        1074
+#define pbtn_gender_0         1075
+#define pbtn_gender_1         1076
+
 #define Chargen2Form          1080
 #define btn_cg2_1             1081
 #define btn_cg2_2             1082
@@ -76,6 +80,26 @@
 #define field_sb           1331
 #define btn_sb_ok          1332
 #define btn_sb_cancel      1333
+
+#define ObjTypeForm        1400
+#define btn_ot_ok          1401
+#define btn_ot_cancel      1402
+#define pbtn_ot_0          1410
+#define pbtn_ot_1          1411
+#define pbtn_ot_2          1412
+#define pbtn_ot_3          1413
+#define pbtn_ot_4          1414
+#define pbtn_ot_5          1415
+#define pbtn_ot_6          1416
+#define pbtn_ot_7          1417
+#define pbtn_ot_8          1418
+#define pbtn_ot_9          1419
+#define pbtn_ot_10         1420
+#define pbtn_ot_11         1421
+#define pbtn_ot_12         1422
+#define pbtn_ot_13         1423
+#define pbtn_ot_MAX        pbtn_ot_13
+
 
 #define PickUpThisP           1900
 #define PICKUP_YES  0

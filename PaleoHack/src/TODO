@@ -152,33 +152,53 @@ Dungeon levels are saved/restored as you ascend/descend the stairs!
 You can die now!
  But there is no top-ten score list yet.
   When you die, it should be saving a bones file.  Haven't tested loading yet!
+You can throw things now!  throwing weapons and food seems to work.
+You can name monsters! such as, your pet.
+Level-teleportation sort of works.  (intra-level teleport-control doesn't work)
+Thrown objects are animated, i.e. tmp_at stuff is implemented now.
+Added very rudimentary hardware button stuff (can't be configured yet).
+Added name and gender selection to initial character generation screen.
+You can put stuff in the ice box, and take stuff out.  yay!
+Added identify and 'D'drop.  yay!  but I still need to make them take a turn..
+Fixed foo-detection: it displays the message, the stuff, and the "fades" now!
+  Still need to do something about the screen being "too small" though.
+  maybe it should automatically throw you into tiny font.. still not enough tho
+  Also, it isn't taking a turn! fix this!
+    (WARNING, you CAN get an engraveform after a foo-detection, if
+    if you're confused.  at least if it's a scroll you can.
+    and I should NOT take a turn if we're popping up the engraveform.)
 
-
-TO DO:  need an interface for assigning a name to individual monsters
-        need identify scroll... it will ident up to 4 items, I think?
-        need throw...
+TO DO:  teleportation interacts poorly with 'more' mode......
 	fix bug: some Scroll msgs (before 'call') get show_message'd TOO much
 	test the vault query (croesus)
-	saving and restoring of worms is NOT IMPLEMENTED YET.
+	saving and restoring of WORMS is NOT IMPLEMENTED YET.
+	look at all the inv actions, make sure they take turn/don't, properly.
+	fix anything that uses multi (or is supposed to, anyway)
+	game crashed if killed by eel? fix this.
+	game crashed if killed by ghost from bottle? fix this.
+	Need top ten list.
+	when you're in invform, and the dog moves, it is drawn THERE! eek.
+        Add preferences/hardwarebutton forms to configure my_prefs values.
+   Bug: It doesn't remember what part of the level I've seen, when
+        I exit the app and return to it (and probably ascending/descending),
+        when testing on the IIIc.  Hmmmm... doesn' seem to be a problem now.
+   Bug: I hear the howling of the Cwnfoo AFTER I die + start a new character.
+        (need to 'clear' the message log counter/pointer after death)
 
    I'm getting errors sometimes (reading an unallocated chunk) when going
       down stairs... (with a clean slate, a newbie that never saved/restored.)
    sometimes do_move crashes.. reading from unalocated chunk of
-      memory... basically, when you fall through a trap door before it
-      draws the next level.  The resulting level has occasional
+      memory... basically, when you fall through a trap door, sometime
+      before it draws the next level.  The resulting level has occasional
       characters that, well, just don't belong.  like % embedded in a
       wall, or the Empty Rectangle character in a passage.
-   TO DO: debug that.
+   I think I've fixed the problem.
 
 
+[foo-detection problem: fixed.]
+Also, when you genocide a monster, it doesn't redraw til next tap, and stuff.
+I expect there are MANY MANY "taking-a-turn is screwy" problems like this.
+Mostly with taking-a-turn being at the wrong time (i.e. before popping up a
+form instead of after) or outright missing (e.g. engrave, foo-detection, etc)
 
-fix timing here:
- quaff potion
- (monsters visible) <-- ah.. we're in SenseForm here?
- tap
-(screen is cleared) --> we left SenseForm?
- tap
- "You sense the presence of monsters. the vision fades."
-Something doesn't seem quite right here :)
-(Also, when you genocide a monster, it doesn't redraw til next tap, and stuff.
-I expect there are many "taking-a-turn is screwy" problems like this.)
+frills I should add:  make "losestr()" beep.

@@ -70,7 +70,7 @@ extern Char fut_geno[];                     // OK
 extern Char genocided[];                    // OK
 /*
 extern Char plname[PL_NSIZ];                            // XXXX NEEDS SAVING?
-extern const Char shtypes[];                // N/A
+extern Char shtypes[];                      // N/A
 extern Int8 engrave_type;                   // scratch
 extern Int8 maxdlevel;                      // OK
 extern PointType doors[MAX_DOORS];          // OK

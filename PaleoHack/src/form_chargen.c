@@ -9,6 +9,8 @@
 
 you_t you;
 extern Char plname[PL_NSIZ]; // shk.c
+static void chargen_init_name(FormPtr frm) SEC_5;
+static void chargen_commit_name(FormPtr frm) SEC_5;
 static void init_by_class() SEC_2;
 static void maybe_frob_qty(Short ti, Short trobj_i, Short *qty) SEC_2;
 static void init_inv(Short ti) SEC_2;
@@ -32,14 +34,19 @@ Boolean Chargen1_Form_HandleEvent(EventPtr e)
 {
   Boolean handled = false;
   FormPtr frm;
-  ControlPtr btn;
+  ControlPtr btn, pushbtn;
   Short btn_i;
     
   switch (e->eType) {
 
   case frmOpenEvent:
     frm = FrmGetActiveForm();
+    chargen_init_name(frm);
     FrmDrawForm(frm);
+    pushbtn = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, pbtn_gender_0));
+    CtlSetValue(pushbtn, my_prefs.is_male);
+    pushbtn = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, pbtn_gender_1));
+    CtlSetValue(pushbtn, !(my_prefs.is_male));
     came_from_generation = true;
     handled = true;
     break;
@@ -47,6 +54,7 @@ Boolean Chargen1_Form_HandleEvent(EventPtr e)
   case ctlSelectEvent:
     switch(e->data.ctlSelect.controlID) {
     case btn_cg1_yes:
+      chargen_commit_name(FrmGetActiveForm());
       FrmGotoForm(Chargen2Form);
       handled = true;
       break;
@@ -73,12 +81,22 @@ Boolean Chargen1_Form_HandleEvent(EventPtr e)
       handled = true;
       break;
     case btn_cg1_ok:
+      chargen_commit_name(FrmGetActiveForm());
       FrmGotoForm(MainForm);
+      handled = true;
+      break;
+    case pbtn_gender_0:
+      my_prefs.is_male = true;
+      handled = true;
+      break;
+    case pbtn_gender_1:
+      my_prefs.is_male = false;
       handled = true;
       break;
     }
     break;
 
+    /*
   case keyDownEvent:
     btn_i = -1;
     switch(e->data.keyDown.chr) {
@@ -100,6 +118,7 @@ Boolean Chargen1_Form_HandleEvent(EventPtr e)
     }
     handled = true;
     break;
+    */
 
   default:
     break;
@@ -107,6 +126,44 @@ Boolean Chargen1_Form_HandleEvent(EventPtr e)
   return handled;
 }
 
+static void chargen_init_name(FormPtr frm)
+{
+  FieldPtr fld;
+  CharPtr p;
+  VoidHand vh;
+
+  if (!my_prefs.name[0])
+    get_default_username(my_prefs.name, PL_NSIZ);
+
+  fld = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, field_charname));
+  vh = (VoidHand) FldGetTextHandle(fld);
+  if (!vh) {
+    vh = MemHandleNew(PL_NSIZ * sizeof(Char));
+  }
+  FldSetTextHandle(fld, (Handle) 0);
+  p = MemHandleLock(vh);
+
+  StrNCopy(p, my_prefs.name, PL_NSIZ);
+  p[PL_NSIZ-1] = '\0';
+  MemHandleUnlock(vh);
+  FldSetTextHandle(fld, (Handle) vh);
+}
+static void chargen_commit_name(FormPtr frm)
+{
+  FieldPtr fld;
+  CharPtr p;
+  VoidHand vh;
+  fld = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, field_charname));
+  vh = (VoidHand) FldGetTextHandle(fld);
+  if (vh) {
+    p = MemHandleLock(vh);
+    if (p && p[0])
+      StrNCopy(my_prefs.name, p, PL_NSIZ);
+    MemHandleUnlock(vh);
+    my_prefs.name[PL_NSIZ-1] = '\0';
+  }
+  writePrefs();
+}
 
 Boolean Chargen2_Form_HandleEvent(EventPtr e)
 {
@@ -334,8 +391,10 @@ static void init_inv(Short ti)
 
 void greet_player()
 {
+  StrNCopy(plname, my_prefs.name, PL_NSIZ);
   if (!plname[0])
     get_default_username(plname, PL_NSIZ);
+  plname[PL_NSIZ-1] = '\0';
 
   StrPrintF(ScratchBuffer, "Hello %s, welcome to hack!", plname);
   message(ScratchBuffer);

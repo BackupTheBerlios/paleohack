@@ -172,8 +172,8 @@ void makelevel()
   if (dlevel > 1 && dlevel < 20 && rund(dlevel) < 3) make_shop();
   else if (dlevel > 6 && !rund(7)) make_zoo(ZOO);
   else if (dlevel > 9 && !rund(5)) make_zoo(BEEHIVE);
-  else if (dlevel > 11 && !rund(6)) make_zoo(MORGUE);
-  else if (dlevel > 18 && !rund(6)) make_swamp();
+  else if (dlevel > 11 && !rund(6)) make_zoo(MORGUE);//untested, need dark room
+  else if (dlevel > 18 && !rund(6)) make_swamp(); // needs more testing too
 }
 
 

@@ -206,11 +206,11 @@ Boolean do_read(obj_t *scroll)
     litroom(!confused);
     break;
   case SCR_TELEPORTATION:
-    if (confused)
-      ; //      level_tele(); // XXXX Not implemented yet!  Needs UI!
-    else {
+    if (confused) {
+      level_tele_start(); // XXXX Not tested yet!  Needs UI!
+    } else {
       Short uroom = inroom(you.ux, you.uy);
-      //      tele(); // XXXX Not implemented yet!  Needs UI!
+      tele(); // XXXX Not tested yet!  Needs UI!
       if (uroom != inroom(you.ux, you.uy)) known = true;
     }
     break;
@@ -297,7 +297,14 @@ Boolean do_read(obj_t *scroll)
       && invent
       );
     */
-    message("Identify is not implemented yet");
+    //    identify_count = rund(5) ? 1 : rund(5);
+    if (!invent)
+      message("You have nothing to identify.");
+    else {
+      extern Boolean drop_not_identify;
+      drop_not_identify = false;
+      FrmPopupForm(ObjTypeForm);
+    }
     return true;
   case SCR_MAGIC_MAPPING: // XXX Doesn't actually work yet.
     {
@@ -483,3 +490,4 @@ void do_genocide(Char *buf)
     you.uhp = -1; // hmm but we don't call 'done' yet?
   }
 }
+

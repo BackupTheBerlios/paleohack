@@ -159,7 +159,7 @@ void cutworm(monst_t *mtmp, Short x, Short y, UChar weptyp)
   /* cut the worm in two halves */
   mtmp2 = (monst_t *) md_malloc(sizeof(monst_t)); // mtmp2 = newmonst(0);
   *mtmp2 = *mtmp;
-  //  mtmp2->mxlth = mtmp2->mnamelth = 0; // XXXX not implemented yet!
+  mtmp2->name = NULL; //  mtmp2->mxlth = mtmp2->mnamelth = 0; // XXXX
 
   /* sometimes the tail end dies */
   if (rund(3) || !getwn(mtmp2)){

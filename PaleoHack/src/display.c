@@ -31,7 +31,7 @@ static Short scrlx, scrhx, scrly, scrhy; /* corners of new area on screen */
 /* Width in pixels of one character ... 160 pixels / 20 col = 8 pix/col */
 #define visible_char_w 8
 // itsy is a smaller font
-#define visible_h_itsy 17
+#define visible_h_itsy 18 /*17*/
 #define visible_w_itsy 32
 #define visible_char_h_itsy 6
 #define visible_char_w_itsy 5
@@ -173,10 +173,10 @@ static void put_char_at(Short row, Short col, Char ch, Boolean bold)
 
   RctSetRectangle(&r, col * vc_w, row*vc_h+vcheat, vc_w, vc_h);
 
-  //  if (!my_prefs.black_bg || IsColor)
-  WinEraseRectangle(&r, 0);
-  //  else
-  //    WinDrawRectangle(&r, 0);
+  if (!my_prefs.black_bg || IsColor)
+    WinEraseRectangle(&r, 0);
+  else
+    WinDrawRectangle(&r, 0);
     
   // calculate pixel position of "row, col" and put char there
   cheat = vc_w - FntCharWidth(ch); // center the variable width characters
@@ -195,15 +195,30 @@ static void put_char_at(Short row, Short col, Char ch, Boolean bold)
     if (!itsy_on && (ch== 'g' || ch== 'j' || ch== 'p' ||ch == 'q' ||ch == 'y'))
       vcheat--; // unfortunately, letters with dangling bits are a pain.
     
-    // if (!my_prefs.black_bg || IsColor)
-    WinDrawChars(&ch, 1, col * vc_w + cheat, row * vc_h+vcheat);
-    // else
-    //   WinDrawInvertedChars(&ch, 1, col * vc_w + cheat, row * vc_h+vcheat);
+    if (!my_prefs.black_bg || IsColor)
+      WinDrawChars(&ch, 1, col * vc_w + cheat, row * vc_h+vcheat);
+    else
+      WinDrawInvertedChars(&ch, 1, col * vc_w + cheat, row * vc_h+vcheat);
 
     if (bold)  WinInvertRectangle(&r, 0); /* 0 for square corners */
   }
   terminal[row][col] = ch;
 
+}
+
+
+// Translate a tap on the screen into absolute-dungeon coordinates.
+// So that the user can ask "what's in this cell?"
+void where_in_dungeon(Short scr_x, Short scr_y, Short *dun_x, Short *dun_y)
+{
+  Short vc_w = itsy_on ? visible_char_w_itsy : visible_char_w;
+  Short vc_h = itsy_on ? visible_char_h_itsy : visible_char_h;
+  scr_y -= DunTopY; // need a slight vertical shift
+  *dun_x = scr_x / vc_w;
+  *dun_y = scr_y / vc_h;
+  *dun_x += visible_x;
+  *dun_y += visible_y;
+  return;
 }
 
 
@@ -454,14 +469,56 @@ void animate_char(Short y, Short x, Char c, Boolean bold)
 
 
 // Extremely funky animation routines
+// This is for an "unidentified flying object"
+typedef struct anim_s {
+  Char let;
+  coord prev;
+} anim_state;
+anim_state my_ufo;
+static void tmp_at_erase(Int8 px, Int8 py) SEC_5;
+void tmp_at_init(Char c) // Replaces the old "tmp_at(-1, c)"
+{
+  my_ufo.let = c;
+  my_ufo.prev.x = -1;
+}
+void tmp_at_newsymbol(Char c) // Replaces the old "tmp_at(-2, c)"
+{
+  my_ufo.let = c;
+}
+void tmp_at_cleanup() // Replaces the old "tmp_at(-1,-1)"
+{
+  tmp_at_erase(my_ufo.prev.x, my_ufo.prev.y);
+  my_ufo.let = '\0';
+  my_ufo.prev.x = -1;
+}
+static void tmp_at_erase(Int8 px, Int8 py)
+{
+  if (px >= 0 && cansee(px, py)) {
+    //    delay_output(); // ??
+    //    prl(px, py);	/* in case there was a monster */
+    //    animate_char(py, px, floor_symbol[px][py], false); // XXXXXXXXXXXXX
+    animate_char(py, px, 0, false); // XXXXXXXXXXXXX
+  }
+}
+void tmp_at(Int8 x, Int8 y)
+{
+  tmp_at_erase(my_ufo.prev.x, my_ufo.prev.y);
+  if (cansee(x, y)) {
+    WinDrawChars(&my_ufo.let, 1, 10, 10);
+    animate_char(y, x, my_ufo.let, false);
+  }
+  SysTaskDelay(SysTicksPerSecond()/16); // probably a nonoptimal location/delay
+  my_ufo.prev.x = x;
+  my_ufo.prev.y = y;
+}
+
+// This is for a "beam" (LIFO erasure)
 typedef struct animation_s {
   Char let;
   Short cnt;
   coord tc[DCOLS];		/* but watch reflecting beams! */
 } animation_state;
 animation_state my_anim;
-
-void tmp_at(Int8 x, Int8 y) { }
 
 // The routine Tmp_at is like tmp_at, except the erasure is LIFO.
 void Tmp_at_init(Char c) // Replaces the old "Tmp_at(-1, c)"
@@ -903,7 +960,8 @@ void message(const Char *buf)
       curfrm == SenseForm ||
       curfrm == Chargen1Form ||
       curfrm == Chargen2Form ||
-      curfrm == InvForm) {    // Log a message for later display
+      curfrm == InvForm ||
+      curfrm == InvActionForm) {    // Log a message for later display
     if (!buf) return;
     tmp = old_messages[0];
     for (i = 0 ; i < SAVED_MSGS-1 ; i++)
@@ -930,9 +988,9 @@ void message(const Char *buf)
 	  old_messages[i] = old_messages[i+1];
 	StrNCopy(tmp, buf+wrap_len, SAVED_MSG_LEN-2); /* leave room for \n.. */
 	tmp[SAVED_MSG_LEN-2] = '\0'; /* making sure it's terminated.. */
-	StrCat(tmp, "\n");
 	// of course probably they're reversed now or something.  sigh.
       }
+      StrCat(tmp, "\n");
     }
     old_messages[SAVED_MSGS-1] = tmp;
     // this part is for "--more--" ability:
@@ -946,8 +1004,9 @@ void message(const Char *buf)
     // Remember that we have something to display
     pending_messages = true;
     command_count = 0;  // (lame hack!)
-  }
-  if (curfrm == InvForm) {
+  } // (Else you're in a form that DOESN'T LOG MESSAGES.)
+
+  if (curfrm == InvForm || curfrm == InvActionForm) {
     // These messages should also be printed straightaway.
     RectangleType r;
     RctSetRectangle(&r,0,128,156,11);
@@ -1025,7 +1084,8 @@ void show_messages()
   //RctSetRectangle(&r,0,134,160,160-134); /* left,top, width and height */
   RctSetRectangle(&r,0,MsgTopY,160,MsgBotY-MsgTopY); /* x,y, W, and H */
 
-  if (curfrm != MainForm) return; // XXX otherwise inventory form title is lost
+  if (curfrm != MainForm && curfrm != SenseForm) // xxxx adding SenseForm.
+    return; // XXX otherwise inventory form title is lost
 
   // if there's nothing to print, just print stats.
   if (last_old_message_shown >= SAVED_MSGS-1) {

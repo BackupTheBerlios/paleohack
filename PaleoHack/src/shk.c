@@ -30,7 +30,8 @@ static Long followmsg;	/* last time of follow message */
   obj->quan <= bp->bquan
 */
 
-const Char shtypes[] = {	/* 8 shoptypes: 7 specialized, 1 mixed */
+// should be const (but can't; compiler problems)
+Char shtypes[] = {	/* 8 shoptypes: 7 specialized, 1 mixed */
   RING_SYM, WAND_SYM, WEAPON_SYM, FOOD_SYM, SCROLL_SYM,
   POTION_SYM, ARMOR_SYM, 0
 };

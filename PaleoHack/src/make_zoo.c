@@ -10,7 +10,7 @@
 #define  PL_NSIZ 32      /* name of player, ghost, shopkeeper */  /* XXXXXXX*/
 
 #include "shk.h"
-extern const Char shtypes[]; /* = "=/)%?!["; 8 types: 7 specialized, 1 mixed */
+extern Char shtypes[]; /* = "=/)%?!["; 8 types: 7 specialized, 1 mixed */
 Int8 shprobs[] = { 3,3,5,5,10,10,14,50 };	/* shop probabilities */
 #define ESHK        ( (eshk_t *)((shk)->extra) )
 

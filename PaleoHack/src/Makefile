@@ -5,7 +5,7 @@ APPID = "PlHk"
 # (It is currently available.  Jul 6 2001.)
 
 UIOBJS = form_about.o form_chargen.o form_map.o form_inv.o \
-         form_messagelog.o form_engrave.o
+         form_messagelog.o form_engrave.o form_objtype.o
 DUMMIES = invent.o make_zoo.o obj_name.o do_name.o drop.o
 OBJS = main.o util.o time.o display.o lock.o   obj_init.o level.o \
        make_level.o make_maze.o make_obj.o make_mon.o movesee.o \

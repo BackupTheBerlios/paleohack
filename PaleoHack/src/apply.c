@@ -9,7 +9,7 @@
 extern previous_state curr_state;
 static obj_t *current_ice_box; // used by <VERB>_ice_box().
 
-static Boolean in_ice_box(obj_t *obj) SEC_2;
+//static Boolean put_in_ice_box(obj_t *obj) SEC_2; // was "in_ice_box"
 static Boolean use_ice_box(obj_t *obj); // keep in default section to be safe
 static monst_t * bchit(Short ddx, Short ddy, Short range, Char sym) SEC_2;
 static void use_whistle(obj_t *obj) SEC_2;
@@ -156,8 +156,10 @@ void use_camera(obj_t *obj)
 
 
 
-static Boolean in_ice_box(obj_t *obj)
+Boolean put_in_ice_box(obj_t *obj)
 {
+  if (!obj)
+    return false;
   if (obj == current_ice_box ||
       (Punished && (obj == uball || obj == uchain))) {
     message("You must be kidding.");
@@ -210,7 +212,7 @@ Short out_ice_box(obj_t *obj) // Keep this in the default section! Func ptrs!
   current_ice_box->owt -= obj->owt;
   obj->age = moves - obj->age;	/* simulated point of time */
   addinv(obj);
-  return 0; // xxx maybe this should be return 1.
+  return 1; // xxx this was 0.  but.. makes no difference?
 }
 
 
@@ -223,21 +225,24 @@ static Boolean use_ice_box(obj_t *obj) // keep in default section to be safe
   for (otmp = fcobj; otmp; otmp = otmp->nobj)
     if (otmp->o_container_id == obj->o_id)
       cnt++;
-  if (!cnt) message("Your ice-box is empty.");
-  else {
+  if (cnt) {
     if (FrmCustomAlert(IceBoxP, "take", "out of", NULL) == 0) // 0==Yes 1==No
       if (askchain(fcobj, NULL, "Take out", false, out_ice_box, ck_ice_box, 0))
 	return true;
     if (FrmCustomAlert(IceBoxP, "put", "in", NULL) != 0) // 0==Yes 1==No
       return false;
+  } else {
+    //    message("Your ice-box is empty.");
+    //    show_messages();
   }
   /* call getobj: 0: allow cnt; #: allow all types; %: expect food */
   /*
   otmp = getobj("0#%", "put in");
-  if (!otmp || !in_ice_box(otmp))
+  if (!otmp || !put_in_ice_box(otmp))
     flags.move = multi = 0;
   */
-  message("I need to select an object");
+  if (getobj_init("0#%", "put (in box)", ACT_REFRIGERATE))
+    FrmPopupForm(InvActionForm);
   return false;
 }
 

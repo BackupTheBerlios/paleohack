@@ -154,11 +154,13 @@
 #define ACT_THROW   17
 #define ACT_ENGRAVE 18
 #define ACT_CHRISTEN 19
+#define ACT_REFRIGERATE   20 /* but.. this command doesn't have a letter.. */
 
 // the Engrave form is also used to get strings for these magic effects:
 #define GET_WISH     42
 #define GET_GENOCIDE 43
 #define GET_VAULT    44
+#define GET_LTELE    45
 
 #define CLASS_TOURIST      0
 #define CLASS_SPELEOLOGIST 1
@@ -182,8 +184,9 @@
 #define  PL_NSIZ 32      /* name of player, ghost, shopkeeper */
 
 #define MAX_ENGR_LEN 40
+#define MAX_MNAME 63
 #define MAX_ONAME 40
-// I added an arbitrary MAX_ONAME; used to be unlimited.
+// I added an arbitrary MAX_ONAME; it used to be unlimited...
 #define CALLABLE_OBJS ((LAST_CALLABLE - FIRST_CALLABLE) + 1)
 #define MAX_GENOCIDE 60
 #define MAX_CLASS 6
@@ -193,7 +196,7 @@
 //#define MODE_SHOWINVIS   1
 #define MODE_MORE        2
 #define MODE_NAMEMON     3
-#define MODE_SLASH       4
+#define MODE_GETCELL     4
 #define MODE_DIRECTIONAL 5
 #define MODE_AGAIN       6
 
@@ -210,5 +213,39 @@
 // what font ID I use
 #define USERFONT 129
 
+
+// hardware button bindings for main form.
+// most of these need to change...
+#define HWB_NOOP    0
+#define HWB_N       1
+#define HWB_S       2
+#define HWB_E       3
+#define HWB_W       4 
+#define HWB_MAP     5
+#define HWB_SEARCH  6
+#define HWB_THROW   7
+#define HWB_INV     8
+#define HWB_APPLY   9
+//#define HWB_ZAP
+//#define HWB_REST
+//#define HWB_WHAT
+//#define HWB_SECTOR
+#define HWB_AGAIN   10
+#define HWB_FONT    11
+#define HWB_SHIFT   12
+#define HWB_first   1
+#define HWB_last    12
+#define HWB_FONT_CMD 'F'
+#define HWB_SHIFT_CMD '@'
+
+// we switch(e->data.keyDown.chr) to make this more tidy
+#define HW_hard1Chr    0
+#define HW_hard2Chr    1
+#define HW_hard3Chr    2
+#define HW_hard4Chr    3
+#define HW_pageUpChr   4
+#define HW_pageDownChr 5
+#define HW_calcChr     6
+#define HW_findChr     7
 
 #include "hack.onames.h" // hack.onames.h is untouched by me.

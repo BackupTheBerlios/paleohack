@@ -255,6 +255,69 @@ gold_t * gold_at(Short x, Short y)
 
 
 
+/* also called by newmail() */ // which doesn't exist in paleohack.
+// return a count of identifies
+static Short identify(obj_t *otmp)
+{
+  BITSET(oc_name_known, otmp->otype);
+  otmp->bitflags |= O_IS_KNOWN & O_IS_DESCKNOWN;
+  prinv(otmp); // XXX
+  return 1;
+}
+static Boolean ckunpaid(obj_t *otmp)
+{
+  return( otmp->bitflags & O_IS_UNPAID );
+}
+/* make dummy object structure containing gold - for temporary use only */
+static obj_t * mkgoldobj(Long q)
+{
+  obj_t *otmp;
+
+  otmp = (obj_t *) md_malloc(sizeof(obj_t));
+  /* should set o_id etc. but otmp will be freed soon */
+  otmp->olet = '$';
+  you.ugold -= q;
+  otmp->oextra = (Char *) q; // XXX dirty trick. needs to match drop().
+  flags.botl |= BOTL_GOLD;
+  return(otmp);
+}
+
+// ggetobj_start lives in form_objtype.c   ...
+Short ggetobj_end(Char *olets, Boolean drop_not_identify,
+		  Boolean allflag, Boolean unpaidflag)
+{
+  Boolean (*ckfn)() = NULL;
+  Short (*fn)() = NULL;
+  Boolean droppedgold = false;
+  Short max_objs;
+
+  if (drop_not_identify) {
+    max_objs = 0;
+    fn = drop; // XXX
+  } else {
+    max_objs = rund(5) ? 1 : rund(5);
+    fn = identify;
+  }
+
+  if (drop_not_identify && olets[0] == '$') {
+    if (you.ugold) {
+      (*fn)(mkgoldobj(you.ugold)); // XXX
+    } else
+      message("You have no gold.");
+    droppedgold = true;
+  }
+
+  if (unpaidflag) ckfn = ckunpaid;
+
+  if (droppedgold && !olets[1])
+    return 1;	/* he dropped gold (or at least tried to) */
+  else
+    return(askchain(invent, olets, 
+		    (drop_not_identify ? "Drop" : "Identify"),
+		    allflag, fn, ckfn, max_objs));
+
+}
+
 
 /*
  * Walk through the chain starting at objchn and ask for all objects
@@ -273,7 +336,7 @@ Short askchain(obj_t *objchn, Char *filter, Char *prompt, Boolean allflag,
   Char ilet;
   Short answer, cnt = 0;
   ilet = 'a' - 1;
-  for (otmp = objchn; otmp; otmp = otmp2) {
+  for (otmp = objchn ; otmp ; otmp = otmp2) {
     if (++ilet > 'z') ilet = 'A';
     otmp2 = otmp->nobj;
     if (filter && *filter && !StrChr(filter, otmp->olet)) continue;
@@ -293,8 +356,13 @@ Short askchain(obj_t *objchn, Char *filter, Char *prompt, Boolean allflag,
     default:        break;
     }
   }
-  message(cnt ? "That was all." : "No applicable objects.");
+  //  message(cnt ? "That was all." : "No applicable objects.");
+  if (cnt) {
+    message("That was all.");
+    //    show_messages(); // xxx ?
+  }
  ret:
+  show_messages(); // xxx ?  Makes the 'identify' msgs show up, but not 'That was all' for removing things from icebox...
   return cnt;
 }
 

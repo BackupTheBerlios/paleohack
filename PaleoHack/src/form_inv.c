@@ -200,7 +200,8 @@ Boolean Inv_Form_HandleEvent(EventPtr e)
       handled = handle_invbtn_drop(list_if);
       break;
     case btn_if_throw:
-      handled = handle_invbtn_throw();
+      handled = true;
+      handle_invbtn_throw();
       break;
     case btn_if_cancel:
       handled = handle_invbtn_cancel();
@@ -353,13 +354,22 @@ static Boolean perform_action(FormPtr frm, Word lst_i, obj_t *otmp,
     break;
   case ACT_DIP:
     handle_inv_dip();
-    break;
+    break; // xxx should return true sometimes instead
   case ACT_THROW:
-    handle_invbtn_throw();// XXX need to TEST after this is implemented.
-    break;
+    return handle_invbtn_throw();// XXX need to TEST after this is implemented.
   case ACT_ENGRAVE:
     handle_inv_engrave();
-    break;
+    return leave;
+  case ACT_REFRIGERATE:
+    //    if (!otmp || !in_ice_box(otmp))
+    //      flags.move = multi = 0;
+    free_inventory_select(frm);
+    LeaveForm();
+    if (put_in_ice_box(otmp)) // returns true if we need to 'tick'
+      end_turn_start_turn();
+    else
+      show_messages(); // seems like a good idea
+    return leave;
   }
   return false;
 }
@@ -387,9 +397,19 @@ static Boolean handle_invbtn_drop(Word lst_i)
 
 static Boolean handle_invbtn_throw()
 {
-  if (inventory_item != -1) {
-    message("throw!");
-  }
+  FormPtr frm = FrmGetActiveForm();
+  obj_t *otmp;
+  if (inventory_item == -1) return false;
+  otmp = get_nth_item(inventory_item);
+  if (!otmp) return false;
+
+  free_inventory_select(frm);
+  LeaveForm();
+
+  curr_state.cmd = 't';
+  curr_state.item = otmp;
+  curr_state.mode = MODE_DIRECTIONAL;
+  draw_directional();
   return true;
 }
 

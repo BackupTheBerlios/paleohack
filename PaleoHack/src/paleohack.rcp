@@ -61,7 +61,13 @@ USABLE
 DEFAULTBTNID btn_cg1_no
 BEGIN
   TITLE "Welcome to PaleoHack"
-  LABEL "Are you an experienced player?" AUTOID AT (0 40)
+  LABEL "Name:" AUTOID AT (0 15)
+  FIELD ID field_charname AT (PrevRight+3 15 130 11) EDITABLE UNDERLINED SINGLELINE MAXCHARS 32
+
+  PUSHBUTTON "Male" ID pbtn_gender_0 AT (95 PrevBottom+3 27 11) USABLE GROUP 1
+  PUSHBUTTON "Female" ID pbtn_gender_1 AT (PrevRight PrevTop 36 PrevHeight) USABLE GROUP 1
+
+  LABEL "Are you an experienced player?" AUTOID AT (0 45)
   BUTTON "Yes" ID btn_cg1_yes AT (60 PrevBottom+10 40 25)
   BUTTON "No" ID btn_cg1_no AT (PrevLeft PrevBottom+10 PrevWidth PrevHeight)
   BUTTON "Ok" ID btn_cg1_ok AT (5 131 PrevWidth PrevHeight) NONUSABLE
@@ -167,9 +173,9 @@ FORM ID EngraveForm AT (2 63 156 95)
 USABLE
 MODAL
 BEGIN
-	TITLE "Engrave     "
+	TITLE "Engrave      "
 
-	FIELD ID field_sb AT (20 PrevTop 130 11) EDITABLE UNDERLINED SINGLELINE MAXCHARS 40
+	FIELD ID field_sb AT (20 59 130 11) EDITABLE UNDERLINED SINGLELINE MAXCHARS 40
 
     GRAFFITISTATEINDICATOR AT (146 85)
 	BUTTON "Ok" ID btn_sb_ok AT (5 78 AUTO AUTO)
@@ -177,6 +183,40 @@ BEGIN
 END
 //	LABEL "Inscription:" AUTOID AT (23 59)
 //	FIELD ID field_sb AT (PrevRight+2 PrevTop 80 11) EDITABLE UNDERLINED SINGLELINE MAXCHARS 12
+
+
+FORM ID ObjTypeForm AT (2 33 156 125)
+USABLE
+MODAL
+BEGIN
+	TITLE "Select Types to Identify"
+
+  PUSHBUTTON "$" ID pbtn_ot_0 AT (5 15 24 AUTO) USABLE GROUP 1
+  PUSHBUTTON "!" ID pbtn_ot_1 AT (PrevRight+5 PrevTop PrevWidth PrevHeight) USABLE GROUP 2
+  PUSHBUTTON "%" ID pbtn_ot_2 AT (PrevRight+5 PrevTop PrevWidth PrevHeight) USABLE GROUP 3
+  PUSHBUTTON "?" ID pbtn_ot_3 AT (PrevRight+5 PrevTop PrevWidth PrevHeight) USABLE GROUP 4
+  PUSHBUTTON "[" ID pbtn_ot_4 AT (PrevRight+5 PrevTop PrevWidth PrevHeight) USABLE GROUP 5
+  LABEL "(money, potion, food, scroll, armor)" AUTOID AT (2 PrevBottom+2)
+
+  PUSHBUTTON "(" ID pbtn_ot_5 AT (5 PrevBottom+5 24 PrevHeight) USABLE GROUP 6
+  PUSHBUTTON ")" ID pbtn_ot_6 AT (PrevRight+5 PrevTop PrevWidth PrevHeight) USABLE GROUP 7
+  PUSHBUTTON "=" ID pbtn_ot_7 AT (PrevRight+5 PrevTop PrevWidth PrevHeight) USABLE GROUP 8
+  PUSHBUTTON "*" ID pbtn_ot_8 AT (PrevRight+5 PrevTop PrevWidth PrevHeight) USABLE GROUP 9
+  PUSHBUTTON "/" ID pbtn_ot_9 AT (PrevRight+5 PrevTop PrevWidth PrevHeight) USABLE GROUP 10
+  LABEL "(tool, weapon, ring, gem, wand)" AUTOID AT (2 PrevBottom+2)
+
+  PUSHBUTTON "\"" ID pbtn_ot_10 AT (5 PrevBottom+5 24 PrevHeight) USABLE GROUP 11
+  PUSHBUTTON "0" ID pbtn_ot_11 AT (PrevRight+5 PrevTop PrevWidth PrevHeight) USABLE GROUP 12
+  PUSHBUTTON "u" ID pbtn_ot_12 AT (PrevRight+5 PrevTop PrevWidth PrevHeight) USABLE GROUP 13
+  PUSHBUTTON "a" ID pbtn_ot_13 AT (PrevRight+5 PrevTop PrevWidth PrevHeight) USABLE GROUP 14
+  LABEL "(amulet, ball, unpaid, any)" AUTOID AT (2 PrevBottom+2)
+
+	BUTTON "Ok" ID btn_ot_ok AT (5 108 AUTO AUTO)
+	BUTTON "Cancel" ID btn_ot_cancel AT (PrevRight+5 PrevTop AUTO AUTO)
+END
+// y=15
+// $  !  %  ?  [  (  )  =  *  /  "  0  u  a
+// (maybe I don't need the 0...)
 
 
 FORM ID MsgLogForm AT (2 2 156 156)
@@ -190,6 +230,9 @@ BEGIN
    REPEATBUTTON "\002" ID repeat_ml_down AT (144 148 10 AUTO) NOFRAME FONT 5 
    BUTTON "Done" ID btn_ml_ok AT (5 140 37 AUTO)
 END
+
+
+
 
 
 

@@ -90,6 +90,17 @@ void clone_for_call(obj_t *otmp)
   engrave_or_what = ACT_CALL;
 }
 
+void level_tele_start()
+{
+  if (Teleport_control) {
+    extern Boolean took_time;
+    engrave_or_what = GET_LTELE;
+    took_time = false;
+    FrmPopupForm(EngraveForm);
+  } else
+    level_tele(0, false);
+}
+
 void engrave_draw()
 {
   Char /*buf[160],*/ *p;
@@ -114,6 +125,9 @@ void engrave_draw()
     StrPrintF(ScratchBuffer, "Call %s %s: ",
 	      is_vowel(str[0]) ? "an" : "a", str);
     break;
+  case ACT_CHRISTEN:
+    lmonnam(curr_state.mon, ScratchBuffer);
+    break;
   case GET_WISH:
     StrPrintF(ScratchBuffer, "You may wish for an object.  What do you want?");
     break;
@@ -124,6 +138,9 @@ void engrave_draw()
   case GET_VAULT:
     StrPrintF(ScratchBuffer,
 	      "Suddenly one of the Vault's guards enters!  \"Hello stranger, who are you?\"");
+    break;
+  case GET_LTELE:
+    StrPrintF(ScratchBuffer, "To what level do you want to teleport? [type a number]");
     break;
   default:
     StrPrintF(ScratchBuffer, "You shouldn't be here! (%d)", engrave_or_what);
@@ -165,6 +182,9 @@ static void init_engrave_fld(FormPtr frm)
   case ACT_CALL:
     StrPrintF(ScratchBuffer, "Call");
     break;
+  case ACT_CHRISTEN:
+    StrPrintF(ScratchBuffer, "Name Monster");
+    break;
   case GET_WISH:
     StrPrintF(ScratchBuffer, "Wish");
     break;
@@ -173,6 +193,9 @@ static void init_engrave_fld(FormPtr frm)
     break;
   case GET_VAULT:
     StrPrintF(ScratchBuffer, "Vault");
+    break;
+  case GET_LTELE:
+    StrPrintF(ScratchBuffer, "Teleport");
     break;
   default:
     StrPrintF(ScratchBuffer, "BUG");
@@ -213,6 +236,9 @@ static void commit_engrave_fld(FormPtr frm)
   case ACT_CALL:
     do_call(curr_state.item, buf);
     break;
+  case ACT_CHRISTEN:
+    do_mname(curr_state.mon, buf);
+    break;
   case GET_WISH: // Hmmmmmm...  will 40 chars be enough?
     do_wish(buf);
     break;
@@ -221,6 +247,15 @@ static void commit_engrave_fld(FormPtr frm)
     break;
   case GET_VAULT:
     do_vault(buf);
+    break;
+  case GET_LTELE:
+    // xxx actually I should reject it somehow if it's non-numeric...
+    {
+      Boolean controlled = Teleport_control && (buf!=NULL);
+      Short newlevel = 0;
+      if (controlled) newlevel = StrAToI(buf);
+      level_tele(newlevel, controlled);
+    }
     break;
   default:
     message("that was a bug");

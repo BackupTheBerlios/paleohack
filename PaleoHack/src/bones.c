@@ -17,13 +17,22 @@ void savebones()
   obj_t *otmp;
   trap_t *ttmp;
   monst_t *mtmp;
+  Short max_rec, i, *recp;
   if (dlevel <= 0 || dlevel > MAXLEVEL) return;
   if (!rund(1 + dlevel/2)) return;	/* not so many ghosts on low levels */
   
 
   // Check whether a bones exists for this dlevel,
   // and if so, don't create one.
-  // (not implemented yet.  scan all 'bones' records.)
+  max_rec = DmNumRecords(phBonesDB);
+  for (i = 0 ; i < max_rec ; i++) {
+    Boolean exists = false;
+    VoidHand vh = DmQueryRecord(phBonesDB, i);
+    recp = (Short *) MemHandleLock(vh);
+    if (recp && recp[0] == dlevel) exists = true;
+    MemHandleUnlock(vh);
+    if (exists) return;
+  }
 
   /* drop everything; the corpse's possessions are usually cursed */
   otmp = invent;

@@ -56,8 +56,8 @@ void nomul(Short nval) // Aborts a "multiple" move
 }
 
 
-const Int8 xdir[8] = { -1,-1, 0, 1, 1, 1, 0,-1 };
-const Int8 ydir[8] = {  0,-1,-1,-1, 0, 1, 1, 1 };
+Int8 xdir[8] = { -1,-1, 0, 1, 1, 1, 0,-1 }; // should be const, but
+Int8 ydir[8] = {  0,-1,-1,-1, 0, 1, 1, 1 }; //   can't w/ segmented app!
 void confdir() // was in cmd.c
 {
   Int8 x = rund(8);
@@ -351,7 +351,7 @@ Boolean do_move() // was domove in hack.c
   }
   if (!flags.nopick) pickup(true);
   if (trap) do_trap(trap);		/* fall into pit, arrow trap, etc. */
-  inshop(); // xxx not tested yet
+  inshop();
   if (!Blind) read_engr_at(you.ux, you.uy);
   return true;
 }
@@ -427,8 +427,8 @@ void pickup(Boolean all)
       if (obj->otype == DEAD_COCKATRICE && !uarmg) {
 	message("Touching the dead cockatrice is a fatal mistake.");
 	message("You turn to stone.");
-	killer = "cockatrice cadaver";  // xxx death not implemented yet!!
-	done("died"); // xxx
+	killer = "cockatrice cadaver";
+	done("died");
 	return;
       }
 
@@ -1111,5 +1111,4 @@ void heal_legs()
     Wounded_legs = 0;
   }
 }
-
 

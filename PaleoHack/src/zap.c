@@ -368,14 +368,14 @@ monst_t * bhit(Short ddx, Short ddy, Short range, Char sym,
   bhitpos.x = you.ux;
   bhitpos.y = you.uy;
 
-  if (sym) tmp_at(-1, sym);	/* opening call */ // XXX not impl yet
+  if (sym) tmp_at_init(sym);	/* opening call */
   while (range-- > 0) {
     bhitpos.x += ddx;
     bhitpos.y += ddy;
     tile_type = get_cell_type(floor_info[bhitpos.x][bhitpos.y]);
     if ((mtmp = mon_at(bhitpos.x,bhitpos.y))) {
       if (sym) {
-	tmp_at(-1, -1);	/* closing call */ // XXX not impl yet
+	tmp_at_cleanup();	/* closing call */
 	return mtmp;
       }
       if (call_fhit) beam_hit_mon(mtmp, obj);
@@ -390,19 +390,21 @@ monst_t * bhit(Short ddx, Short ddy, Short range, Char sym,
       bhitpos.y -= ddy;
       break;
     }
-    if (sym) tmp_at(bhitpos.x, bhitpos.y); // XXX not impl yet
+    if (sym) tmp_at(bhitpos.x, bhitpos.y);
   }
 
   /* leave last symbol unless in a pool */
   tile_type = get_cell_type(floor_info[bhitpos.x][bhitpos.y]);
-  if (sym)
-    tmp_at(-1, (tile_type == POOL) ? -1 : 0);
+  if (sym) {    // was:     tmp_at(-1, (tile_type == POOL) ? -1 : 0);
+    if (tile_type == POOL) tmp_at_cleanup();
+    else tmp_at_init('\0');
+  }
   return NULL;
 }
 
 
 // boomerang...
-extern const Int8 xdir[8], ydir[8];
+extern Int8 xdir[8], ydir[8]; // should be const, but can't w/ segmented app!
 // I got rid of youmonst; instead, set caught to true if you catch it.
 monst_t * boomhit(Short dx, Short dy, Boolean *caught)
 {
@@ -415,18 +417,20 @@ monst_t * boomhit(Short dx, Short dy, Boolean *caught)
   bhitpos.x = you.ux;
   bhitpos.y = you.uy;
 
-  for (i = 0 ; i < 8 ; i++) if (xdir[i] == dx && ydir[i] == dy) break;
-  tmp_at(-1, sym);	/* open call */
+  for (i = 0 ; i < 8 ; i++)
+    if (xdir[i] == dx && ydir[i] == dy)
+      break;
+  tmp_at_init(sym);
   for (ct = 0 ; ct < 10 ; ct++) {
     if (i == 8) i = 0;
     sym = ')' + '(' - sym;
-    tmp_at(-2, sym);	/* change let call */
+    tmp_at_newsymbol(sym);
     dx = xdir[i];
     dy = ydir[i];
     bhitpos.x += dx;
     bhitpos.y += dy;
     if ((mtmp = mon_at(bhitpos.x, bhitpos.y))) {
-      tmp_at(-1,-1);
+      tmp_at_cleanup();
       return mtmp;
     }
     tile_type = get_cell_type(floor_info[bhitpos.x][bhitpos.y]);
@@ -436,11 +440,11 @@ monst_t * boomhit(Short dx, Short dy, Boolean *caught)
       break;
     }
     if (bhitpos.x == you.ux && bhitpos.y == you.uy) { /* ct == 9 */
-      if (rund(20) >= 10+you.ulevel){	/* we hit ourselves */
+      if (rund(20) >= 10+you.ulevel) {	/* we hit ourselves */
 	thing_hit_you(10, rnd(10), "boomerang");
 	break;
       } else {	/* we catch it */
-	tmp_at(-1,-1);
+	tmp_at_cleanup();
 	message("Skillfully, you catch the boomerang.");
 	*caught = true;
 	return NULL;
@@ -449,7 +453,7 @@ monst_t * boomhit(Short dx, Short dy, Boolean *caught)
     tmp_at(bhitpos.x, bhitpos.y);
     if (ct % 5 != 0) i++;
   }
-  tmp_at(-1, -1);	/* do not leave last symbol */
+  tmp_at_cleanup();	/* do not leave last symbol */
   return NULL;
 }
 
@@ -733,3 +737,7 @@ static void burn_scrolls()
     losehp(1, "burning scroll");
   }
 }
+
+
+
+

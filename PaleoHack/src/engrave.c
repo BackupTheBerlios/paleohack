@@ -112,7 +112,7 @@ void read_engr_at(Short x, Short y)
 
 // so, like, when you write an engraving you need to alloc both the
 // engraving AND STRING, and when you free it, remember to get BOTH!!
-void make_engr_at(Short x, Short y, Char *s) // not impl yet
+void make_engr_at(Short x, Short y, Char *s)
 {
   engr_t *ep;
 

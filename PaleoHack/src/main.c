@@ -23,8 +23,6 @@ Boolean Version_GE_OS35 = false; // (is OS version >= 3.5)
 Boolean death = false;
 extern Short multi; // living in movesee.c right now..
 
-//phPreferenceType my_prefs = {
-//};
 
 void move_visible_window(Short left_x, Short top_y, Boolean center);//display.c
 
@@ -37,6 +35,7 @@ static Boolean do_command(Char com_val);
 static Boolean do_inv_command(Char com_val);
 static void do_multi_move();
 static Boolean do_dir_command();
+static Boolean do_xy_command(Short x, Short y);
 static Boolean buttonsHandleEvent(EventPtr e);
 static Boolean OpenDatabase(void);
 static Boolean ApplicationHandleEvent(EventPtr e);
@@ -44,6 +43,23 @@ static void readPrefs();
 static Word StartApplication(void);
 static void StopApplication(void);
 static void EventLoop(void);
+
+HackPreferenceType my_prefs = {
+  6, // run_walk_border
+  2, // walk_center_border
+  { 0, HWB_W, HWB_E, 0, HWB_N, HWB_S, HWB_MAP, HWB_SEARCH },
+  true, //  false, // hardware buttons XXX just for testing.
+  "",
+  true,  // is male
+  true,  // big font
+  false, // relative move (off)
+  true,  // sound
+  true,  // run
+  //  true,  // auto pickup
+  false, // invert (not) on
+  false, // color (not) on
+  false  // (don't) turn off animations
+};
 
 
 extern Short msglog_mode;
@@ -56,6 +72,7 @@ static void reset_state(previous_state *ps)
   //  ps->dir_cmd = DIR_NONE;
   //  ps->dir = 5;
   ps->item = NULL;
+  ps->mon = NULL;
   ps->count = 0;
   ps->spell = -1;
 }
@@ -71,6 +88,7 @@ void bump_state()
   //  ps->dir_cmd = DIR_NONE;
   //  ps->dir = 5;
   ps->item = NULL;
+  ps->mon = NULL;
   ps->count = 0;
   ps->spell = -1;
 }
@@ -161,7 +179,7 @@ void tick()
   timeout(); // tick any effects that are on timers.
   moves++;
   //  if (flags.time) flags.botl = 1; // Just to print "%ld" moves in statusbar
-  if (you.uhp < 1) {
+  if (you.uhp < 1 && !you.dead) {
     message("You die...");
     done("died"); // XXX 
     return;
@@ -287,6 +305,23 @@ Boolean Main_Form_HandleEvent(EventPtr e)
       return handled;
     }
     break; // end MODE_MORE
+
+  case MODE_GETCELL:
+    switch (e->eType) {
+    case penDownEvent:
+      where_in_dungeon(e->screenX, e->screenY, &tmp_x, &tmp_y);//cnvert to cell
+      valid = do_xy_command(tmp_x, tmp_y);
+      break;
+    default:
+      return handled;
+    }
+    if (valid) {
+      monst_t *mtmp = curr_state.mon;
+      bump_state();  // Can't: we need the curr_state.mon ...
+      curr_state.mon = mtmp;
+    } else reset_state(&curr_state);
+    handled = true;
+    break; // end MODE_GETCELL
 
   case MODE_DIRECTIONAL:
     // Can be entered only from do_command: iff one of "f^cSod?-" was entered.
@@ -489,7 +524,7 @@ static Boolean do_command(Char com_val)
     took_time = false;
     break;
   case '/':
-    // "whatsit" command.. puts main event handler into MODE_SLASH,
+    // "whatsit" command.. puts main event handler into MODE_GETCELL,
     // you need to write a graffiti character next.
     // (I think I should allow screen taps too.)
     // and you get a message saying what that class of objs/mons is.
@@ -514,6 +549,25 @@ static Boolean do_command(Char com_val)
     break;
   case '>':
     took_time = do_down();
+    break;
+  case 'C':
+    took_time = false;
+    curr_state.cmd = 'C';
+    curr_state.item = NULL;
+    curr_state.mode = MODE_GETCELL;
+    message("Select a monster to name...");
+    break; // name an individual monster.
+    // allows you to move cursor to a monster to give it a name!
+    // gar... not sure how to do that... will be like "tap to recall"
+    // in moria: basically I need a MODE_NAMEMON for main event handler.
+  case '^': // identify an adjacent trap in some direction,
+    took_time = false;
+    curr_state.cmd = '^';
+    curr_state.item = NULL;
+    curr_state.mode = MODE_DIRECTIONAL;
+    draw_directional();
+    // do not 'tick'.
+    // also, call "do_id_trap" when you're done.
     break;
   default:
     handled = false;
@@ -540,20 +594,6 @@ static Boolean do_inv_command(Char com_val)
   // in an inventory-form event handler, call it explicitly here.
   switch(com_val) {
     // Take a long hard look at getobj, for the filtering.
-  case 'C':
-    message("Don't know how to name a monster yet.");
-    break; // name an individual monster.
-    // allows you to move cursor to a monster to give it a name!
-    // gar... not sure how to do that... will be like "tap to recall"
-    // in moria: basically I need a MODE_NAMEMON for main event handler.
-  case '^': // identify an adjacent trap in some direction,
-    curr_state.cmd = '^';
-    curr_state.item = NULL;
-    curr_state.mode = MODE_DIRECTIONAL;
-    draw_directional();
-    // do not 'tick'.
-    // also, call "do_id_trap" when you're done.
-    break;
   case 'a':
     if (getobj_init("(", "use or apply", ACT_APPLY))
       FrmPopupForm(InvActionForm);
@@ -571,7 +611,14 @@ static Boolean do_inv_command(Char com_val)
     if (getobj_init("0$#", "drop", ACT_DROP))
       FrmPopupForm(InvActionForm);
     break;
-  case 'D': break; // drop by category... takes a single turn?
+  case 'D':
+    {
+      extern Boolean drop_not_identify;
+      drop_not_identify = true;
+      FrmPopupForm(ObjTypeForm);
+    }
+    break;
+    // drop by category... takes a single turn?
     // ok, basically have a variation on the 'drop' form:
     // one button to drop, one button to exit (like cancel), but
     // the drop button does NOT make you LeaveForm nor take a turn,
@@ -630,6 +677,9 @@ static Boolean do_inv_command(Char com_val)
   case 'i':
     FrmPopupForm(InvForm);
     return true;
+  case '\015': // ^M "map".  octal 15, decimal 13.
+    FrmPopupForm(MapForm);
+    return true;
   default:
     handled = false;
     took_time = false;
@@ -666,6 +716,7 @@ static void do_multi_move()
   took_time = false; // cause we already called tick
 }
 
+
 // to do continuations of directional commmands.
 // return true if the command was valid/meaningful.
 static Boolean do_dir_command()
@@ -701,6 +752,20 @@ static Boolean do_dir_command()
     // Why does it return a boolean anyway?
     // Consult original source code.
     break;
+  case 't': // Throw
+    took_time = false;
+    if (you.dx || you.dy || you.dz)
+      took_time = do_throw(curr_state.item);
+    else
+      return false;
+    break;
+  case 'z': // Zap
+    took_time = false;
+    if (you.dx || you.dy || you.dz)
+      took_time = do_zap_helper(curr_state.item);
+    else
+      return false;
+    break;
   default:
     break;
   }
@@ -708,14 +773,57 @@ static Boolean do_dir_command()
 
 }
 
+// to do continuations of get-a-cell commmands.
+// return true if the command was valid/meaningful.
+extern Char plname[PL_NSIZ];
+extern Short engrave_or_what;
+static Boolean do_xy_command(Short x, Short y)
+{
+  monst_t *mtmp;
+  if (curr_state.cmd == -1) return false;
+  if (OUT_OF_BOUNDS(x, y)) return false;
+  switch(curr_state.cmd) {
+  case 'C': // 'call monster'
+    took_time = true; // yes, screwing up takes a turn.  bummer eh.
+    mtmp = mon_at(x, y);
+    if (!mtmp) {
+      if (x == you.ux && y == you.uy) {
+	StrPrintF(ScratchBuffer,
+		  "This ugly monster is called %s and cannot be renamed.",
+		  plname);
+	message(ScratchBuffer);
+      } else                            message("There is no monster there.");
+    }
+    else if (mtmp->bitflags & M_IS_MIMIC)  message("I see no monster there.");
+    else if (!cansee(x, y))          message("I cannot see a monster there.");
+    else {
+      took_time = false;
+      engrave_or_what = ACT_CHRISTEN;
+      curr_state.mon = mtmp;
+      FrmPopupForm(EngraveForm);
+    }
+    break;
+  case '\024': // ^T "teleport".  octal 24, decimal 20.
+    took_time = true;
+    tele_finish(x, y, Teleport_control);
+    break;
+  case '/': // 'whatsit'
+    break;
+  default:
+    break;
+  }
+  return true;
+}
+
 /*****************************************************************************/
 
+const Char hwb_commands[HWB_last+2] = "\0kjlh\015stiagF@";
 static Boolean buttonsHandleEvent(EventPtr e)
 {
-  Boolean handled = false;
-  //  Short btn, dispatch_type = 0;
+  Boolean handled = false, valid = false, capslock_on, numlock_on, autoshifted;
   Word curfrm;
-  //  Char command;
+  Short btn, dispatch_type = 0, tmp_shift;
+  Char command;
 
   if ( ((e->data.keyDown.chr < hard1Chr) || (e->data.keyDown.chr > hard4Chr))
        && (e->data.keyDown.chr != calcChr)
@@ -726,6 +834,91 @@ static Boolean buttonsHandleEvent(EventPtr e)
 
   curfrm = FrmGetActiveFormID();
 
+  switch (e->data.keyDown.chr) {
+    // this just maps it from wacky-button-char to '0...7'.
+  case hard1Chr:     btn = HW_hard1Chr   ;  break;      // datebook
+  case hard2Chr:     btn = HW_hard2Chr   ;  break;      // address
+  case hard3Chr:     btn = HW_hard3Chr   ;  break;      // todo
+  case hard4Chr:     btn = HW_hard4Chr   ;  break;      // memos
+  case pageUpChr:    btn = HW_pageUpChr  ;  break;
+  case pageDownChr:  btn = HW_pageDownChr;  break;
+  case calcChr:      btn = HW_calcChr    ;  break;
+  case findChr:      btn = HW_findChr    ;  break;
+  default:
+    return false;
+  }
+
+  // [ here I should do some per-form button handling, possibly ]
+
+  dispatch_type = my_prefs.hardware[btn]; // XXX
+  // tapping the 'goto map' button a second time will EXIT the map.. rah.
+  if ((curfrm == MapForm) && (dispatch_type == HWB_MAP)) {
+    LeaveForm();
+    return true;
+  }
+
+  if (curfrm != MainForm) {
+    // IF the key is bound, return TRUE to MASK it, unless it is up/down.
+    return ( dispatch_type != HWB_NOOP &&
+	     e->data.keyDown.chr != pageUpChr &&
+	     e->data.keyDown.chr != pageDownChr );
+  }
+
+  if (dispatch_type < HWB_first || dispatch_type > HWB_last) return false;
+  command = hwb_commands[dispatch_type];
+  if (dispatch_type >= 1 && dispatch_type <= 4) { // "kjlh"
+    // This part is just like map_roguedir...
+    GrfGetState(&capslock_on, &numlock_on, &tmp_shift, &autoshifted);
+    if ((tmp_shift == grfTempShiftUpper) || capslock_on)
+      command -= 'a' - 'A';
+    // ... except we need to "turn off" the temp shift afterwards (if any).
+    GrfSetState(capslock_on, numlock_on, false);
+  }
+
+  switch(curr_state.mode) {
+  case MODE_MORE:
+    show_messages();
+    if (!message_clear(false))
+      curr_state.mode = MODE_DEFAULT;
+    return true;
+  case MODE_GETCELL:
+    return true; // do nothing
+  case MODE_DIRECTIONAL:
+    // Act like keyDownEvent in Main_Form_HandleEvent
+    if ((valid = convert_char_to_dir(command)))
+      valid = do_dir_command();
+    if (valid) bump_state();
+    else reset_state(&curr_state);
+    handled = true;
+    break;
+  case MODE_DEFAULT:
+    if (command == HWB_FONT_CMD) {
+      // just like "case menu_mainFont" in main form event handler
+      toggle_itsy();
+      move_visible_window(you.ux, you.uy, true);
+      refresh();
+      took_time = false; // or maybe I should 'return true'.
+      handled = true;
+    } else if (command == HWB_SHIFT_CMD) {
+      // act like we toggled the CapsLock
+      GrfGetState(&capslock_on, &numlock_on, &tmp_shift, &autoshifted);
+      GrfSetState(!capslock_on, numlock_on, false);
+      return true;
+    } else {
+      // Act like keyDownEvent in Main_Form_HandleEvent
+      if (message_clear(false)) {
+	show_messages();
+	//    command_count = 0; // I do need this - it just doesn't exist yet
+	return true;
+      }
+      handled = do_command(command);
+      if (!handled)
+	if (do_inv_command(command)) return true;
+    }
+    break;
+  }
+
+  end_turn_start_turn();
   return handled;
 }
 
@@ -814,6 +1007,9 @@ static Boolean ApplicationHandleEvent(EventPtr e)
 	case InvActionForm:
 	    FrmSetEventHandler(frm, InvAction_Form_HandleEvent);
 	    break;
+	case ObjTypeForm:
+	    FrmSetEventHandler(frm, ObjType_Form_HandleEvent);
+	    break;
 	case EngraveForm:
 	    FrmSetEventHandler(frm, Engrave_Form_HandleEvent);
 	    break;
@@ -833,11 +1029,10 @@ static Boolean ApplicationHandleEvent(EventPtr e)
 
 static void readPrefs()
 {
-  /*
   Word prefsSize;
   SWord prefsVersion;
 
-  prefsSize = sizeof(phPreferenceType);
+  prefsSize = sizeof(HackPreferenceType);
   prefsVersion = PrefGetAppPreferences(phAppID, phAppPrefID, &my_prefs,
 				       &prefsSize, true);
   if (!my_prefs.big_font)
@@ -847,17 +1042,14 @@ static void readPrefs()
     // hmm... remember to zero out the new space ...
     writePrefs();
   }
-  */
 }
 void writePrefs()
 {
-  /*
   Word prefsSize;
 
-  prefsSize = sizeof(phPreferenceType);
+  prefsSize = sizeof(HackPreferenceType);
   PrefSetAppPreferences(phAppID, phAppPrefID, phAppPrefVersion,
 			&my_prefs, prefsSize, true);
-  */
 }
 
 
@@ -1075,6 +1267,8 @@ static void StopApplication(void)
   data_record_lock(false);
   */
 
+  writePrefs(); // perhaps I should do it earlier..
+
   dosave(); // always save, we'll check for "already dead" when we load it.
   unlock_const_recs();
   unlock_volatile_recs();
@@ -1117,7 +1311,7 @@ static void EventLoop(void)
 	// Do special hardware button things only if:
 	// it's a hardware button event, [you're alive,] and in the main form.
 	if ( (e.eType != keyDownEvent)
-	     /*	     || !my_prefs.use_hardware  */
+	     || !my_prefs.use_hardware
 	     || (e.data.keyDown.modifiers & poweredOnKeyMask)
 	     // || (FrmGetActiveFormID() != MainForm)
 	     || !buttonsHandleEvent(&e) )

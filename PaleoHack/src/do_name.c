@@ -5,7 +5,26 @@
  *********************************************************************/
 #include "paleohack.h"
 
-static Char * xmonnam(monst_t *mtmp, Short vb) SEC_1;
+extern Char plname[PL_NSIZ];
+
+static Char * xmonnam(monst_t *mtmp, Short vb);// SEC_1;
+
+void do_mname(monst_t *mtmp, Char *new_name)
+{
+  Short len;
+  if (!mtmp) return;
+  if (mtmp->name != NULL) {
+    free_me((VoidPtr) mtmp->name);
+    mtmp->name = NULL;
+  }
+  if (!new_name) return;
+  len = StrLen(new_name) + 1;
+  if (len <= 1) return;
+  if (len > MAX_MNAME) len = MAX_MNAME;
+  mtmp->name = (Char *) md_malloc(len * sizeof(Char));
+  StrNCopy(mtmp->name, new_name, len);
+  mtmp->name[len-1] = '\0';
+}
 
 void do_name(obj_t *otmp, Char *new_name)
 {
@@ -57,50 +76,59 @@ Char *oc_get_uname(Short otype)
 // 17 + strlen("the invisible ") + strlen(" called ") + max called length...
 // say 17+23 = 40.  so 80 should be plenty.
 #define MAX_XMONNAM 80
+Char *ghostnames[] = {	/* these names should have length < PL_NSIZ */
+  "adri",   "andries", "andreas", "bert", "david",
+  "dirk",   "emile",   "frans",   "fred", "greg",
+  "hether", "jay",     "john",    "jon",  "kay",
+  "kenny",  "maud",    "michiel", "mike", "peter",
+  "robert", "ron",     "tom",     "wilmar"
+};
 static Char * xmonnam(monst_t *mtmp, Short vb)
 {
   static Char buf[MAX_XMONNAM];
-  /*
-  if (mtmp->mnamelth && !vb) {
-    (void) strcpy(buf, NAME(mtmp));
-    return(buf);
+
+  if (mtmp->name && !vb) {
+    StrCopy(buf, mtmp->name);
+    return buf;
   }
   switch(mtmp->data->mlet) {
   case ' ':
     {
-      Char *gn = (char *) mtmp->mextra;
+      Char *gn = mtmp->name;
       if (!*gn) {		// might also look in scorefile
-	gn = ghostnames[rn2(SIZE(ghostnames))];
-	if (!rn2(2)) (void)
-		       strcpy((char *) mtmp->mextra, !rn2(5) ? plname : gn);
+	gn = ghostnames[rund( sizeof(ghostnames)/sizeof(Char *) )];
+	if (!rund(2)) StrCopy(mtmp->name, !rund(5) ? plname : gn);
       }
-      (void) sprintf(buf, "%s's ghost", gn);
+      StrPrintF(buf, "%s's ghost", gn);
     }
     break;
   case '@':
-    if (mtmp->isshk) {
-      (void) strcpy(buf, shkname(mtmp));
+    if (mtmp->bitflags & M_IS_SHOPKEEPER) {
+      StrCopy(buf, shkname(mtmp));
       break;
     }
     // fall into next case
   default:
-  */
+
   StrPrintF(buf, "the%s%s",
 	    (mtmp->bitflags & M_IS_INVISIBLE) ? " invisible " : " ",
 	    mon_names + mtmp->data->mname_offset);
-  /*
   }
-  if (vb && mtmp->mnamelth) {
-    (void) strcat(buf, " called ");
-    (void) strcat(buf, NAME(mtmp));
+  if (vb && mtmp->name) {
+    StrCat(buf, " called ");
+    StrCat(buf, mtmp->name);
   }
-  */
   return(buf);
 }
 
 Char * monnam(monst_t *mtmp)
 {
   return xmonnam(mtmp, 0);
+}
+
+void lmonnam(monst_t *mtmp, Char *buf)
+{
+  StrPrintF(buf, "What do you want to call %s?", xmonnam(mtmp, 1));
 }
 
 // This is just a capitalized monnam(mtmp) .... heh.
