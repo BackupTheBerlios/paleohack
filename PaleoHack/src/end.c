@@ -19,7 +19,7 @@ extern Short msglog_mode;
 static Char * ordin(Short n) SEC_5;
 Char *killer = NULL;
 extern Char plname[PL_NSIZ];
-//extern const Char vowels[6];
+
 
 extern Char char_class_names[MAX_CLASS][13];
 
@@ -27,12 +27,13 @@ extern Char char_class_names[MAX_CLASS][13];
 #define	NAMSZ	8     /* CLEARLY expects a username here.... bah....
                        * I will definitely need to increase that. --sprite */
 #define	DTHSZ	40    // eventually 'killer' gets StrNCopied to here.
-#define	PERSMAX	1
+//#define	PERSMAX	1
 #define	POINTSMIN	1	/* must be > 0 */
-#define	ENTRYMAX	100	/* must be >= 10 */
-#define PERS_IS_UID		/* delete for PERSMAX per name; now per uid */
+//#define	ENTRYMAX	100	/* must be >= 10 */
+#define	ENTRYMAX	20	/* must be >= 10 */
+//#define PERS_IS_UID		/* delete for PERSMAX per name; now per uid */
 typedef struct toptenentry {
-  struct toptenentry *tt_next;
+  //  struct toptenentry *tt_next;
   Long points;
   Short level,maxlvl,hp,maxhp;
   ULong birthdate_is_uid;// use birthdate instead of uid for single-user system
@@ -43,7 +44,10 @@ typedef struct toptenentry {
   // Char date[7];	/* yymmdd */   // It would be shorter to store ULong!..
   ULong date; // just call TimGetSeconds(); or whatever.
 } topten_t;
-topten_t *tt_head;
+topten_t tt;
+Short tt_rank = -1;
+Short tt_show_after_rank = -1;
+Short tt_next_page;
 
 extern Boolean level_exists[MAXLEVEL+1];
 
@@ -55,6 +59,12 @@ static Short length_pet_names() SEC_5;
 static void append_pet_names(Char *buf) SEC_5;
 static Short length_gems() SEC_5;
 static void append_gems(Char *buf) SEC_5;
+
+static Short draw_topten(Short i) SEC_5;
+static void create_tt(topten_t *tt) SEC_5;
+static void print_tt_head(Short *y) SEC_5;
+static Boolean print_tt_rec(topten_t *tt_rec, Short rank, Short *y, Boolean bold) SEC_5;
+static void maybe_insert_tt(topten_t *tt_rec, Char *buf) SEC_5;
 
 void unsave()
 {
@@ -82,10 +92,11 @@ void done_in_by(monst_t *mtmp)
 {
   static Char buf[BUFSZ];
   Char *mcall = mtmp->name;
+  Char *gcall = (Char *) (mtmp->extra);
   Char *mname = mon_names + mtmp->data->mname_offset;
   message("You die ...");
   if (mtmp->data->mlet == ' ') {
-    StrPrintF(buf, "the ghost of %s", (mcall && mcall[0]) ? mcall : "nobody");
+    StrPrintF(buf, "the ghost of %s", (gcall && gcall[0]) ? gcall : "nobody");
     killer = buf;
   } else if (mcall && mcall[0]) {
     StrPrintF(buf, "%s called %s", mname, mcall);
@@ -116,8 +127,8 @@ static Boolean need_rip;
 void done(Char *st1)
 {
   Boolean leftform = false;
-  need_rip = false;
   if (you.dead) return; // hm, we've already been here
+  need_rip = false;
 #ifdef WIZARD
   if (wizard && *st1 == 'd') { // (died, drowned)
     you.uswallowedtime = 0;
@@ -179,7 +190,8 @@ void done(Char *st1)
 #define SCR_H 160
 #define SCR_W 160
 // New!  Randomly generated grass.  Because I'm just that crazy.
-//Char stems[] = ")/\\\\_//(\\/(/\\)/\\//\\/|_)";
+Char old_stems[] = ")/\\\\_//(\\/(/\\)/\\//\\/|_)";
+//#define RANDOM_STEM /* Uncomment this to have random flowers. */
 #define STEMS 5
 Char stem[] = "/\\)(_X";
 Int8 stem_prob[STEMS] = { 6, 6, 3, 2, 2};
@@ -187,27 +199,11 @@ Char *rip_txt[3] = {"REST", "IN", "PEACE"};
 #define TOMB_LINES 13
 void draw_tombstone()
 {
-  Char buf[BUFSZ];
-  Short y0, w, w0, i, x, y, tmp;
+  Char buf[BUFSZ], c;
+  Short y0, w, w0, i, x, y;
   y0 = (SCR_H - (TOMB_LINES+1) * LINE_H)/2; // Center tombstone vertically
   if (y0 < 0) y0 = 0;
 
-  // First draw the stems on the bottom line, and flowers above.
-  x = SCR_W/8;
-  w = (7*SCR_W)/8;
-  y = y0 + TOMB_LINES * LINE_H;
-  w0 = (FntCharWidth('(') - FntCharWidth('*')) / 2; // heh, about a pixel.
-  for (i = 0, tmp = 0 ; i < STEMS ; i++) tmp += stem_prob[i];
-  for ( ; x < w ; ) {
-    Short k = 0, j = rund(tmp);
-    while (k < STEMS && j >= stem_prob[k]) j -= stem_prob[k++];
-    if (stem[k] == '(' || stem[k] == ')')
-      WinDrawChars("*", 1, x+w0, y - (3*LINE_H)/4);
-    WinDrawChars(&(stem[k]), 1, x, y);
-    x += FntCharWidth(stem[k]);
-  }
-  StrPrintF(buf, "2002"); // XXXXX fix this to be the "real" year
-  WinDrawChars_ctr(buf, StrLen(buf), SCR_W/2, y-2*LINE_H);
   // Now draw the tombstone
   y = y0;
   w = FntCharWidth('_'); // I want 10 of these, 4 pixels, 1/4 of screen.
@@ -226,6 +222,40 @@ void draw_tombstone()
     WinDrawChars("|", 1, SCR_W-x, y);
   }
   // Ok, the outline of tombstone is drawn.  
+
+
+  // Draw the stems on the bottom line, and flowers above.
+#ifdef RANDOM_STEM
+  x = SCR_W/8;
+  w = (7*SCR_W)/8;
+  {
+    Short tmp;
+    for (i = 0, tmp = 0 ; i < STEMS ; i++) tmp += stem_prob[i];
+  }
+#else
+  w = FntCharsWidth(old_stems, StrLen(old_stems) - 3);
+  x = (SCR_W-x) - w; // Make the '|' (on the right) line up!
+#endif
+  y = y0 + TOMB_LINES * LINE_H;
+  w0 = (FntCharWidth('(') - FntCharWidth('*')) / 2; // heh, about a pixel.
+#ifdef RANDOM_STEM
+  for ( ; x < w ; ) {
+    Short k = 0, j = rund(tmp);
+    while (k < STEMS && j >= stem_prob[k]) j -= stem_prob[k++];
+    c = stem[k];
+#else
+  for (i = 0 ; i < StrLen(old_stems) ; i++) {
+    c = old_stems[i];
+#endif
+    if (c == '(' || c == ')')
+      WinDrawChars("*", 1, x+w0, y - (3*LINE_H)/4);
+    WinDrawChars(&c, 1, x, y);
+    x += FntCharWidth(c);
+  }
+  StrPrintF(buf, "2002"); // XXXXX fix this to be the "real" year
+  WinDrawChars_ctr(buf, StrLen(buf), SCR_W/2, y-2*LINE_H);
+
+
 
   // Ok now add text.....
   //  'x' is still the place where we drew the left '|'...
@@ -433,6 +463,13 @@ void done_postRIP(Char *buf)
   //#endif WIZARD
   //    topten();
   //  exit(0);
+
+  
+  // mess around with the database
+  create_tt(&tt);
+  tt_rank = tt_show_after_rank = -1;
+  maybe_insert_tt(&tt, buf);
+  
 }
 
 
@@ -450,9 +487,288 @@ static void transition_to_topten()
   FrmPopupForm(MsgLogForm);
 }
 
-void draw_topten()
+
+
+
+void init_topten()
 {
-  level_message("no score list yet -- hit any key to go on");  
+  Short i;
+  /*
+  i = (tt_rank ? tt_rank-2 : tt_show_after_rank-1);
+  draw_topten(i - 2); // we'll show 3 entries before yours.
+  */
+  tt_next_page = draw_topten(0);
+}
+
+static Short draw_topten(Short i)
+{
+  Short rec_i, rank;
+  Short y = 0, fits, maxtop;
+  VoidHand vh;
+  topten_t *t1;
+  RectangleType r;
+
+  RctSetRectangle(&r, 0, 0, SCR_W, SCR_H);
+  WinEraseRectangle(&r, 0);
+
+  // tt_rank should be 0 or a one-based rank now.  (after maybe_insert_tt().)
+  // if 0, then tt_show_after_rank should be a one-based rank now.
+  // (otherwise, tt_show_after_rank is undefined.)
+
+  print_tt_head(&y);
+
+  if (i < 0) i = 0;
+  // Scores can take 2 or 3 lines.  let's assume 3 lines.
+  //  fits = (SCR_H - (LINE_H + 1)) / 3*LINE_H; // at least this many will fit.
+  //  maxtop = DmNumRecords(phScoreDB) - fits;
+  //  if (maxtop >= 0 && i > maxtop) i = maxtop;
+
+  for (rec_i = i ; rec_i < DmNumRecords(phScoreDB) ; rec_i++) {
+    vh = DmQueryRecord(phScoreDB, rec_i);
+    t1 = (topten_t *) MemHandleLock(vh);
+    rank = rec_i + 1;
+    if (! print_tt_rec(t1, rank, &y, (rank == tt_rank)) ) {
+      MemHandleUnlock(vh);
+      return (rec_i - 1);
+    }
+    if (!tt_rank && rank == tt_show_after_rank)
+      if (! print_tt_rec(&tt, 0, &y, true)) {
+	MemHandleUnlock(vh);
+	return rec_i;
+      }
+    MemHandleUnlock(vh);
+    //    if (y > SCR_H - 2*LINE_H) break;
+  }
+  return rec_i;
+
+}
+
+static void create_tt(topten_t *tt)
+{
+  tt->points = you.urexp;
+  tt->level = dlevel;
+  tt->maxlvl = maxdlevel;
+  tt->hp = (you.uhp < 0 ? 0 : you.uhp);
+  tt->maxhp = you.uhpmax;
+  tt->birthdate_is_uid = you.birthdate;
+  tt->plchar = char_class_names[you.character_class][0];
+  tt->sex = (my_prefs.is_male ? 'M' : 'F');
+  tt->date = TimGetSeconds();
+  StrNCopy(tt->name, plname, NAMSZ);
+  tt->name[NAMSZ] = '\0';
+  StrNCopy(tt->death, killer, DTHSZ);
+  tt->death[DTHSZ] = '\0'; // "the Wizard of Yendor"?
+  /* assure minimum number of points */
+  if (tt->points < POINTSMIN)
+    tt->points = 0;
+}
+
+// This will set tt_rank to 0 (not_on_list) or n (n'th on list, one-based.)
+// If it sets tt_rank to 0, it will also set tt_show_after_rank to the
+// (one-based) rank after which this unlisted entry should be displayed.
+static void maybe_insert_tt(topten_t *tt_rec, Char *buf)
+{
+  VoidHand vh;
+  topten_t *t1;
+  Short rec_i;
+  Long tmp_score = 0;
+  /* tt_rank: -1 undefined, 0 not_on_list, n n_th on list  (n is one-based) */
+  tt_rank = -1;
+  for (rec_i = 0 ; rec_i < DmNumRecords(phScoreDB) ; rec_i++) {
+    Boolean dupe = false;
+    vh = DmQueryRecord(phScoreDB, rec_i);
+    t1 = (topten_t *) MemHandleLock(vh);
+   if (tt_rank < 0 && t1->points < tt.points)
+      tt_rank = rec_i + 1; // insert 'before' t1... (but rank is one-based.)
+    // if 'duplicate':
+    //   if tt_rank is on_list, delete duplicate,
+    //   else set tt_rank to not_on_list and set tt_show_after_rank to current.
+    if ((t1->birthdate_is_uid == tt.birthdate_is_uid)
+#ifndef PERS_IS_UID
+	|| (0 == StrNCompare(t1->name, tt.name, NAMSZ) &&
+	    t1->plchar == tt.plchar /*&& --occ_cnt <= 0*/ )
+#endif PERS_IS_UID
+	) {
+      dupe = true;
+      tmp_score = t1->points;
+    }
+    MemHandleUnlock(vh);
+    if (dupe) {
+      if (tt_rank > 0) {
+	DmRemoveRecord(phScoreDB, rec_i);
+	rec_i--; // don't skip the next entry!
+      } else {
+	tt_rank = 0;
+	tt_show_after_rank = rec_i + 1; // rank is one-based.
+	if (buf)
+	  StrPrintF(buf+StrLen(buf),
+		    "\n\nYou didn't beat your previous score of %ld points.",
+		    tmp_score);
+      }
+    } // end 'if dupe'
+  }
+  // tt_rank should now be defined unless you have the lowest score, so..
+  if (tt_rank < 0) {
+    if (DmNumRecords(phScoreDB) < ENTRYMAX)
+      // there's still room for you
+      tt_rank = DmNumRecords(phScoreDB) + 1;
+    else {
+      tt_rank = 0;
+      tt_show_after_rank = DmNumRecords(phScoreDB);
+    }
+  }
+  // Ok!  If we decided to insert the record, better do that now.
+  if (tt_rank > 0) {
+    Short new_rec_i = tt_rank - 1;
+    VoidPtr p;
+    vh = DmNewRecord(phScoreDB, &new_rec_i, sizeof(topten_t));
+    p = MemHandleLock(vh);
+    DmWrite(p, 0, &tt, sizeof(topten_t));
+    MemHandleUnlock(vh);
+    DmReleaseRecord(phScoreDB, new_rec_i, true);
+    if (buf) {
+      if (tt_rank <= 10)
+	StrPrintF(buf+StrLen(buf), "\n\nYou made the top ten list!");
+      else
+	StrPrintF(buf+StrLen(buf),
+		  "\n\nYou reached the %d%s place on the top %d list.",
+		  tt_rank, ordin(tt_rank), ENTRYMAX);
+    }
+  }
+  // Hey, I also need to delete the nth record if n exceeds the limit.
+  // ('cause there might NOT have been a duplicate to delete.)
+  while (DmNumRecords(phScoreDB) >= ENTRYMAX) {
+    DmRemoveRecord(phScoreDB, ENTRYMAX-1);
+  }
+
+}
+
+static void print_tt_head(Short *yp)
+{
+  Short x = 0;
+  Short w_digit, w_space, w_bracket;
+  w_digit = FntCharWidth('0');
+  w_space = FntCharWidth(' ');
+  w_bracket = FntCharWidth('[');
+  //  StrPrintF(ScratchBuffer, "#     Points   Name               Hp [max]");
+  //  WinDrawChars(ScratchBuffer, StrLen(ScratchBuffer), x, y);
+  WinDrawChars("#", 1, x, *yp);
+  /*
+  x += 3*w_digit + 2*w_space;
+  WinDrawChars("Points", 6, x, *yp);
+  x += 6*w_digit + 2*w_space;
+  */
+  x += 2*w_digit + 2*w_space + 6*w_digit;
+  WinDrawChars_rj("Points", 6, x, *yp);
+  x += 2*w_space;
+  WinDrawChars("Name", 4, x, *yp);
+  /* // Uncomment this if I decide to print HP in print_tt_rec....
+  x = 160;
+  WinDrawChars_rj("Hp [max]", 8, x, *yp);
+  */
+  *yp += LINE_H;
+  WinDrawGrayLine(0, *yp, 160, *yp);
+  *yp += 1;
+}
+
+// This will use 2 or 3 lines.
+static Boolean print_tt_rec(topten_t *t1, Short rank, Short *yp, Boolean bold)
+{
+  Short x = 0, y0 = *yp;
+  Short w_digit, w_space, w_bracket;
+  Boolean quit = false, starv = false, killed = false;
+
+  if (*yp >= SCR_H - LINE_H) return false;
+  w_digit = FntCharWidth('0');
+  w_space = FntCharWidth(' ');
+  w_bracket = FntCharWidth('[');
+
+  //  StrPrintF(ScratchBuffer, "001 000123 sprite-W");
+  x = 2*w_digit; // 3*w_digit;
+  if (rank) {
+    StrPrintF(ScratchBuffer, "%d", rank); // Rank
+    WinDrawChars_rj(ScratchBuffer, StrLen(ScratchBuffer), x, *yp);
+  }
+  x += 2*w_space + 6*w_digit;
+  StrPrintF(ScratchBuffer, "%ld", t1->points); // Score
+  WinDrawChars_rj(ScratchBuffer, StrLen(ScratchBuffer), x, *yp);
+  x += 2*w_space;
+  StrPrintF(ScratchBuffer, "%s-%c", t1->name, t1->plchar);
+  WinDrawChars(ScratchBuffer, StrLen(ScratchBuffer), x, *yp);
+  *yp += LINE_H;
+  if (*yp >= SCR_H - LINE_H) return false;
+  // Now it gets messy.
+  if (!StrNCompare("escaped", t1->death, 7)) {
+    if (!StrCompare(" (with amulet)", t1->death+7))
+      StrPrintF(ScratchBuffer, "escaped the dungeon with amulet");
+    else
+      StrPrintF(ScratchBuffer, "escaped the dungeon [max level %d]",
+	      t1->maxlvl);
+  } else {
+    if (!StrNCompare(t1->death, "quit", 4)) {
+      quit = true;
+      if (t1->maxhp < 3*t1->hp && t1->maxlvl < 4)
+	StrPrintF(ScratchBuffer, "cravenly gave up");
+      else
+	StrPrintF(ScratchBuffer, "quit");
+    } else if (!StrCompare(t1->death, "choked")) {
+      StrPrintF(ScratchBuffer, "choked on %s food",
+	      (t1->sex == 'F') ? "her" : "his");
+    } else if (!StrNCompare(t1->death, "starv", 5)) {
+      StrPrintF(ScratchBuffer, "starved to death");
+      starv = true;
+    } else {
+      StrPrintF(ScratchBuffer, "was killed");
+      killed = true;
+    }
+    StrPrintF(ScratchBuffer+StrLen(ScratchBuffer), " on%slevel %d",
+	      (killed || starv) ? " " : " dungeon ", t1->level);
+    if (t1->maxlvl != t1->level)
+      StrPrintF(ScratchBuffer+StrLen(ScratchBuffer), " [max %d]", t1->maxlvl);
+    if (quit && t1->death[4])
+      StrPrintF(ScratchBuffer+StrLen(ScratchBuffer), t1->death + 4); // hmmmm?
+  }
+  if (killed)
+    StrPrintF(ScratchBuffer+StrLen(ScratchBuffer), " by%s%s",
+	      ( (!StrNCompare(t1->death, "trick", 5) ||
+		 !StrNCompare(t1->death, "the ", 4))
+		? " " :
+		StrChr("aeiou", t1->death[0]) ? " an " : " a "),
+	      t1->death);
+  StrPrintF(ScratchBuffer+StrLen(ScratchBuffer), ".");
+  // have to figure out where to wrap the darned thing.
+  x = 0;
+  if (FntCharsWidth(ScratchBuffer, StrLen(ScratchBuffer)) <= 160) {
+    WinDrawChars(ScratchBuffer, StrLen(ScratchBuffer), x, *yp);    
+    //    *yp += LINE_H;    // Nah.. we can save a line..
+  } else {
+    Short len = FntWordWrap(ScratchBuffer, 160);// fits on 1st line.
+    WinDrawChars(ScratchBuffer, len, x, *yp);
+    *yp += LINE_H;
+    if (*yp >= SCR_H - LINE_H) return false;
+    WinDrawChars(ScratchBuffer+len, StrLen(ScratchBuffer)-len, x, *yp);
+  }
+
+  // Finally, print hp / maxhp.
+  /*
+  x = 160;
+  StrPrintF(ScratchBuffer, "[%d]", t1->maxhp); // max hp
+  WinDrawChars_rj(ScratchBuffer, StrLen(ScratchBuffer), x, *yp);
+  x -= (3*w_digit + 2*w_bracket + 2*w_space);
+  if (t1->hp)
+    StrPrintF(ScratchBuffer, "%d", t1->hp); // or make it "-" if <= 0 ...
+  else
+    StrPrintF(ScratchBuffer, "-");
+  WinDrawChars_rj(ScratchBuffer, StrLen(ScratchBuffer), x, *yp);
+  */
+  *yp += LINE_H;
+
+  if (bold) {
+    RectangleType r;
+    RctSetRectangle(&r, 0, y0, SCR_W, *yp - y0);
+    WinInvertRectangle(&r, 0);
+  }
+  return true;
 }
 
 
@@ -479,8 +795,12 @@ Boolean Tombstone_Form_HandleEvent(EventPtr e)
     if (need_rip)
       transition_to_topten(); // msglog form will call draw_topten on exit.
     else {
-      LeaveForm();
-      FrmGotoForm(Chargen1Form); // xxx need to change this.  (I do?)
+      if (tt_next_page >= DmNumRecords(phScoreDB)) {
+	LeaveForm();
+	FrmGotoForm(Chargen1Form); // xxx need to change this.  (I do?)
+      } else {
+	tt_next_page = draw_topten(tt_next_page);
+      }
     }
     handled = true;
     break;

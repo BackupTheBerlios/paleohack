@@ -14,6 +14,12 @@ static void init_messagelog_view(FormPtr frm) SEC_5;
 static Short get_info_size() SEC_5;
 static Short write_info(Char *txtP) SEC_5;
 static void draw_messagelog(FormPtr frm) SEC_5;
+static void cleanup_help() SEC_5;
+
+// Note:  In main.c I've blocked all hardware buttons (including power)
+// from operation in messagelog form - this is because when you
+// exit the form by leaving the application, it doesn't do the
+// right thing for the SHOW_LHELP or SHOW_SHELP case - it crashes.)
 
 Boolean MsgLog_Form_HandleEvent(EventPtr e)
 {
@@ -34,8 +40,10 @@ Boolean MsgLog_Form_HandleEvent(EventPtr e)
   case ctlSelectEvent:
     switch(e->data.ctlSelect.controlID) {
     case btn_ml_ok:
+      if (msglog_mode == SHOW_LHELP || msglog_mode == SHOW_SHELP)
+	cleanup_help();
       LeaveForm(); // LeaveForm(true);
-      if (msglog_mode == SHOW_DEAD) draw_topten();
+      if (msglog_mode == SHOW_DEAD) init_topten();
       handled = true;
       break;
     }
@@ -73,7 +81,7 @@ Boolean MsgLog_Form_HandleEvent(EventPtr e)
       handled = true;
       break;
     case '\n': // Keyboard support.  Woo hoo.
-      LeaveForm();
+      hit_button_if_usable(frm, btn_ml_ok);
       handled = true;
       break;
     }
@@ -95,8 +103,8 @@ Boolean MsgLog_Form_HandleEvent(EventPtr e)
  Initializes the displayed form 'frm' with a list of the last
  SAVED_MSGS messages.  Called when frm is being initialized.
  **********************************************************************/
-static const Char *msglog_title[4] = {"Message Log", "Discoveries", 
-				      "Goodbye", "Bug"};
+static const Char *msglog_title[6] = {"Message Log", "Discoveries", "Goodbye",
+				      "Long Help", "Short Help", "Bug"};
 static void init_messagelog_view(FormPtr frm)
 {
   FieldPtr fld;
@@ -104,16 +112,23 @@ static void init_messagelog_view(FormPtr frm)
   Short len = 10; // some extra space to be sure
   // Get the text field
   fld = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, field_ml));
-  // Create a mem. handle and lock it
-  len += get_info_size();
-  msglog_TextHandle = MemHandleNew(len);
-  txtP = MemHandleLock(msglog_TextHandle);
-  len = write_info(txtP);
-  // Unlock the handle.  Set the field to display the handle's text.
-  MemHandleUnlock(msglog_TextHandle);
+  if (msglog_mode == SHOW_LHELP) {
+    msglog_TextHandle = DmGetResource(strRsc, Help1Str);
+  } else if (msglog_mode == SHOW_SHELP) {
+    msglog_TextHandle = DmGetResource(strRsc, Help2Str);
+  } else {
+    // Create a mem. handle and lock it
+    len += get_info_size();
+    msglog_TextHandle = MemHandleNew(len);
+    txtP = MemHandleLock(msglog_TextHandle);
+    len = write_info(txtP);
+    // Unlock the handle.  Set the field to display the handle's text.
+    MemHandleUnlock(msglog_TextHandle);
+  }
   FldSetTextHandle(fld, (Handle) msglog_TextHandle);
   FrmCopyTitle(frm, msglog_title[msglog_mode]);
 }
+
 
 
 // Return size of text handle needed
@@ -202,4 +217,13 @@ static void draw_messagelog(FormPtr frm)
     break;
   }
   update_field_scrollers(frm, fld, repeat_ml_up, repeat_ml_down);
+}
+
+static void cleanup_help()
+{
+  FormPtr frm;
+  FieldPtr fld;
+  frm = FrmGetActiveForm();
+  fld = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, field_ml));
+  FldSetTextHandle(fld, NULL); // will that work?
 }

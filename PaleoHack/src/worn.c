@@ -142,19 +142,16 @@ Boolean armoroff(obj_t *otmp) // was in do_wear.c
   if (cursed(otmp)) return false;
   setworn(NULL, (otmp->owornmask & W_ARMOR));
   if (delay) {
-    //    nomul(delay); // XXXXXXX need implementing/testing/revising/thingy
+    nomul(delay); // XXXX
     switch(otmp->otype) {
     case HELMET:
-      //      nomovemsg = "You finished taking off your helmet.";
-      message("You finished taking off your helmet.");
+      spin_multi("You finished taking off your helmet.");
       break;
     case PAIR_OF_GLOVES:
-      //      nomovemsg = "You finished taking off your gloves";
-      message("You finished taking off your gloves.");
+      spin_multi("You finished taking off your gloves.");
       break;
     default:
-      //      nomovemsg = "You finished taking off your suit.";
-      message("You finished taking off your suit.");
+      spin_multi("You finished taking off your suit.");
     }
   } else {
     //off_msg(otmp); /* ("You were wearing %s.", doname(otmp)); */

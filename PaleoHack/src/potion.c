@@ -26,19 +26,21 @@ extern obj_t *sense_by_what;// convey info to SenseForm
 // So if (do_drink) the caller should exit invform _and_ tick,
 // otherwise the caller should just exit invform.
 // (exiting the invform occurs _before_ calling do_drink..)
-Boolean do_drink(obj_t *otmp)
+// .. Ok, I've modified this again so that it lets the caller distinguish
+// between "it worked" and "it worked and I popped up EngraveForm".
+tri_val_t do_drink(obj_t *otmp)
 {
   obj_t *objs;
   //  monst_t *mtmp;
-  Boolean unkn = false, nothing = false;
+  Boolean unkn = false, nothing = false, b;
   Short tmp;
 
-  if (!otmp) return false;
+  if (!otmp) return NO_OP;
   tmp = oc_descr_offset[otmp->otype];
   if (tmp >= 0 && (0 == StrNCompare("smoky", oc_descrs+tmp, 5)) && !rund(13)) {
     ghost_from_bottle();
     useup(otmp);
-    return true;
+    return DONE;
   }
   switch(otmp->otype) {
   case POT_RESTORE_STRENGTH:
@@ -56,13 +58,17 @@ Boolean do_drink(obj_t *otmp)
     /* the whiskey makes us feel better */
     if (you.uhp < you.uhpmax) losehp(-1, "bottle of whiskey");
     if (!rund(4)) {
-      Short coma;
+      tri_val_t t;
+      //      Short coma;
       message("You pass out.");
-      coma = rnd(15); //multi = -rnd(15);
-      do { tick(); } while (--coma > 0);
-      message("You awake with a headache.");
-      // nomovemsg = "You awake with a headache.";
-      return false; // so that we don't take any _more_ turns
+      multi = -rnd(15);
+      spin_multi("You awake with a headache.");
+      //      coma = rnd(15); //
+      //      do { tick(); } while (--coma > 0);
+      //      message("You awake with a headache.");
+      // // nomovemsg = "You awake with a headache.";
+      t = finish_do_drink(otmp, nothing, unkn); //.... I guess....
+      return (t==DONE ? NO_OP : t); // so that we don't take any _more_ turns
     }
     break;
   case POT_INVISIBILITY:
@@ -101,26 +107,28 @@ Boolean do_drink(obj_t *otmp)
     break;
   case POT_MONSTER_DETECTION:
     if (!fmon) {
-      strange_feeling(otmp, "You feel threatened.");
-      return true;
+      b = strange_feeling(otmp, "You feel threatened.");
+      return ((b) ? GO_ON : DONE);
     } else {
       sense_what = SENSE_MONSTERS;
       sense_by_what = otmp;
+      sense_init_screen();
       FrmPopupForm(SenseForm);
-      return false; // to postpone the tick!
+      return GO_ON; // to postpone the tick!
     }
     break;
   case POT_OBJECT_DETECTION:
     if (!fobj) {
-      strange_feeling(otmp, "You feel a pull downward.");
-      return true;
+      b = strange_feeling(otmp, "You feel a pull downward.");
+      return ((b) ? GO_ON : DONE);
     } else {
       for (objs = fobj; objs; objs = objs->nobj)
 	if (objs->ox != you.ux || objs->oy != you.uy) {
 	  sense_what = SENSE_OBJECTS;
 	  sense_by_what = otmp;
+	  sense_init_screen();
 	  FrmPopupForm(SenseForm);
-	  return false; // to postpone the tick!
+	  return GO_ON; // to postpone the tick!
 	}
       message("You sense the presence of objects close nearby.");
       break;
@@ -190,21 +198,22 @@ Boolean do_drink(obj_t *otmp)
       nothing = true;
     Levitation += rnd(100);
     //    you.uprops[PROP(RIN_LEVITATION)].p_tofn = float_down; // XXXXXX
+    // it has been replaced by tweaking timeout.c to call float_down directly.
     break;
   default:
     StrPrintF(ScratchBuffer, "What a funny potion! (%u)", otmp->otype);
     message(ScratchBuffer);
-    return false;
+    return NO_OP;
   }
-  finish_do_drink(otmp, nothing, unkn);
-  return true;
+  return finish_do_drink(otmp, nothing, unkn);
 }
 // 'cause we also need to call this after leaving the SenseForm!
 Int8 engrave_type;
 extern Short engrave_or_what;
-void finish_do_drink(obj_t *otmp, Boolean nothing, Boolean unkn)
+tri_val_t finish_do_drink(obj_t *otmp, Boolean nothing, Boolean unkn)
 {
-  if (!otmp) return; // bug if that happens
+  Boolean go_on = false;
+  if (!otmp) return NO_OP; // bug if that happens
   if (nothing) {
     unkn = true;
     message("You have a peculiar feeling for a moment, then it passes.");
@@ -219,17 +228,21 @@ void finish_do_drink(obj_t *otmp, Boolean nothing, Boolean unkn)
       show_all_messages();
       clone_for_call(otmp); // so we don't have to worry about useup!
       FrmPopupForm(EngraveForm);
+      go_on = true;
     }
   }
   useup(otmp);
+  if (go_on) return GO_ON;
+  else       return DONE;
 }
 
 
 // pluslvl has been moved to another file.
 
 // also used for scrolls.
-void strange_feeling(obj_t *obj, Char *txt)
+Boolean strange_feeling(obj_t *obj, Char *txt)
 {
+  Boolean engrave = false;
   if (flags.beginner)
     message("You have a strange feeling for a moment, then it passes.");
   else
@@ -240,8 +253,10 @@ void strange_feeling(obj_t *obj, Char *txt)
     show_all_messages();
     clone_for_call(obj); // so we don't have to worry about useup!
     FrmPopupForm(EngraveForm);
+    engrave = true;
   }
   useup(obj);
+  return engrave;
 }
 
 

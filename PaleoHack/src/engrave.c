@@ -7,6 +7,7 @@
 #include "paleohackRsc.h"
 
 extern previous_state curr_state;
+extern Short multi; // living in movesee.c right now..
 
 
 //#define MAX_ENGR_LEN 40
@@ -152,8 +153,8 @@ Boolean check_do_engrave()
   // Ok, the rest of this must be done AFTER selecting 'otmp' from inventory.
 
   /* one may write with finger, weapon or wand */
-  if (!otmp) return false;
-  //  if (otmp == &zeroobj) otmp = NULL; // XXX
+  //  if (!otmp) return false;
+  // //  if (otmp == &zeroobj) otmp = NULL; // XXX
   if (otmp && otmp->otype == WAN_FIRE && otmp->spe) {
     type = BURN;
     otmp->spe--;
@@ -194,6 +195,7 @@ Boolean check_do_engrave()
 		  aobjnam(otmp, "are"));
 	message(ScratchBuffer);
 	if (oep && oep->engr_type != DUST) return true;
+	// xxx this message is not shown until next turn??
       }
     } else
       type = DUST;
@@ -240,7 +242,7 @@ Boolean do_engrave(obj_t *otmp, Char *buf, Int8 type)
   engr_t *ep, *oep = engr_at(you.ux, you.uy);
   //  Char buf[BUFSZ];
   Short spct;		/* number of leading spaces */
-  //  multi = 0; // XXX
+  multi = 0; // XXX
 
   // We have gotten the object-to-engrave-with via inventory list.
   // We have gotten the message to engrave, via form with editable field in it.
@@ -258,8 +260,8 @@ Boolean do_engrave(obj_t *otmp, Char *buf, Int8 type)
   case DUST:
   case BURN:
     if (len > 15) {
-      //      multi = -(len/10); // XXX
-      //      nomovemsg = "You finished writing.";
+      multi = -(len/10); // XXX
+      spin_multi("You finished writing.");
     }
     break;
   case ENGRAVE:		/* here otmp != 0 */
@@ -272,12 +274,13 @@ Boolean do_engrave(obj_t *otmp, Char *buf, Int8 type)
 	len = len2;
 	sp[len] = 0;
 	otmp->spe = -3; // XXX
-	//	nomovemsg = "You cannot engrave more.";
+	multi = -len;
+	spin_multi("You cannot engrave more.");
       } else {
 	otmp->spe -= len/2; // XXX
-	// nomovemsg = "You finished engraving.";
+	multi = -len;
+	spin_multi("You finished engraving.");
       }
-      //      multi = -len; // XXX
     }
     break;
   }

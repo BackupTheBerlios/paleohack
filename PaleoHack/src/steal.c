@@ -136,6 +136,8 @@ Boolean steal(monst_t *mtmp) // xxx not implemented yet (missing stealarm)
 				*/
 	stealoid = otmp->o_id;
 	stealmid = mtmp->m_id;
+	spin_multi("");
+	stealarm();
 	//afternmv = stealarm;// XXXX not implemented yet
 	// xxxx What I need to do here is have a while loop and tick() I guess!
 	return false;

@@ -113,7 +113,7 @@ Boolean do_move() // was domove in hack.c
   if (inv_weight() > 0){
     message("You collapse under your load.");
     nomul(0);
-    return false;
+    return true; //    return false; // yes it should take a turn.
   }
   if (you.uswallow) {
     you.dx = you.dy = 0;
@@ -165,7 +165,7 @@ Boolean do_move() // was domove in hack.c
 	message(ScratchBuffer);
       }
       nomul(0);
-      return false;
+      return false; // XXXX check whether this actually takes a turn
     }
   }
 
@@ -297,7 +297,7 @@ Boolean do_move() // was domove in hack.c
       uchain->ox = you.ux;
       uchain->oy = you.uy;
       nomul(-2); // XXXXXXX
-      //      nomovemsg = "";
+      spin_multi("");
     }
   } // end of dragging.
 
@@ -984,8 +984,14 @@ void goto_level(Short newlevel, Boolean at_stairs)
 	you.ux = xupstair;	/* this will confuse the player! */
 	you.uy = yupstair;
       }
-      if (Punished && !Levitation) {
-	message("With great effort you climb the stairs.");
+      //      if (Punished && !Levitation) {
+      //	message("With great effort you climb the stairs.");
+      //	placebc(true);
+      //      }
+      // xxx I heard that the above will cause crash if Punished && Levitation.
+      if (Punished) {
+	if (!Levitation)
+	  message("With great effort you climb the stairs.");
 	placebc(true);
       }
     } else {
@@ -1037,6 +1043,7 @@ void goto_level(Short newlevel, Boolean at_stairs)
   seeobjs();	/* make old cadavers disappear - riv05!a3 */
   move_visible_window(you.ux, you.uy, true);
   refresh(); //  docrt();
+  flags.botl = BOTL_ALL;
   print_stats(0);
   pickup(true);
   read_engr_at(you.ux, you.uy);
@@ -1067,7 +1074,7 @@ void pluslvl()
     StrPrintF(ScratchBuffer, "Welcome to experience level %u.", you.ulevel);
     message(ScratchBuffer);
   }
-  flags.botl |= BOTL_EXP;
+  flags.botl |= BOTL_EXP | BOTL_HP;
 }
 
 

@@ -386,3 +386,8 @@ typedef struct HackPreferenceType_s
 // no_rest_on_space = basically what you think.
 // invlet_constant,= whether inv letters should stay constant when dropped
 // notombstone, end_own, end_top, end_around = customizing post-death display.
+
+#define NO_OP 0
+#define GO_ON 1
+#define DONE 2
+typedef UInt tri_val_t;

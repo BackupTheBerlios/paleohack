@@ -52,4 +52,7 @@ extern Int8 dlevel; // wonder why this is not a part of you
 extern Int8 maxdlevel; // ditto
 extern Short xdnstair, xupstair, ydnstair, yupstair;
 
+
+extern Char *nomovemsg;
+
 extern HackPreferenceType my_prefs;

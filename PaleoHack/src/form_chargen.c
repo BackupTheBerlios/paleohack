@@ -35,7 +35,7 @@ Boolean Chargen1_Form_HandleEvent(EventPtr e)
   Boolean handled = false;
   FormPtr frm;
   ControlPtr btn, pushbtn;
-  Short btn_i;
+  //  Short btn_i;
     
   switch (e->eType) {
 
@@ -389,6 +389,7 @@ static void init_inv(Short ti)
 
 
 
+extern Short multi; // living in movesee.c right now..
 void greet_player()
 {
   StrNCopy(plname, my_prefs.name, PL_NSIZ);
@@ -398,6 +399,9 @@ void greet_player()
 
   StrPrintF(ScratchBuffer, "Hello %s, welcome to hack!", plname);
   message(ScratchBuffer);
+  flags.botl = BOTL_ALL;
+  multi = 0;
+  preempt_messages();
 }
 // also, decide whether to print "You are lucky! Full moon tonight."
 void moon_player()
@@ -418,6 +422,9 @@ static void zero_you()
   you = *zyou;
   // hmmm need to free it.
   MemPtrFree(zyou);
+  // other things need to be zeroed also:
+  moves = 0;
+  // also I should "erase" old messages....
 }
 
 

@@ -161,6 +161,8 @@
 #define GET_GENOCIDE 43
 #define GET_VAULT    44
 #define GET_LTELE    45
+#define ACT_CALL_2   46
+
 
 #define CLASS_TOURIST      0
 #define CLASS_SPELEOLOGIST 1
@@ -205,6 +207,8 @@
 #define SHOW_MSGLOG     0
 #define SHOW_DISCOVERED 1
 #define SHOW_DEAD       2
+#define SHOW_LHELP      3
+#define SHOW_SHELP      4
 // ... values for msglog_mode.
 
 // for beaming...
@@ -235,8 +239,8 @@
 #define HWB_SHIFT   12
 #define HWB_first   1
 #define HWB_last    12
-#define HWB_FONT_CMD 'F'
-#define HWB_SHIFT_CMD '@'
+#define HWB_FONT_CMD '!'
+#define HWB_SHIFT_CMD '#'
 
 // we switch(e->data.keyDown.chr) to make this more tidy
 #define HW_hard1Chr    0
@@ -247,5 +251,6 @@
 #define HW_pageDownChr 5
 #define HW_calcChr     6
 #define HW_findChr     7
+
 
 #include "hack.onames.h" // hack.onames.h is untouched by me.

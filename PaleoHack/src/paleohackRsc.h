@@ -14,6 +14,8 @@
 #define menu_mainRedraw       1016
 #define menu_mainMsgs         1019
 #define menu_mainFont         1020
+#define menu_mainHelp         1021
+#define menu_mainScores       1022
 
 #define AboutForm             1050
 #define btn_about_ok          1051
@@ -110,25 +112,45 @@
 #define EatFloorP             1902
 #define IceBoxP               1903
 #define NameCallP             1904
+#define LongShortP            1905
+
+#define Help1Str         2300
+#define Help2Str         2301
 
 
 
 // Do not mess with these numbers.  They are an ascii-related hack.
 #define MAGIC_MENU_NUMBER 4000
+#define menu_cmd_CtrlT   4020
 #define menu_cmd_space   4032
 #define menu_cmd_bang    4033
 #define menu_cmd_pound   4035
 #define menu_cmd_dollar  4036
+#define menu_cmd_paren2  4041
+#define menu_cmd_comma   4044
 #define menu_cmd_minus   4045
+#define menu_cmd_dot     4046
+#define menu_cmd_slash   4047
+#define menu_cmd_colon   4058
 #define menu_cmd_lt      4060
+#define menu_cmd_eq      4061
 #define menu_cmd_gt      4062
 //#define menu_cmd_look    4063
+#define menu_cmd_C       4067
+#define menu_cmd_D       4068
+#define menu_cmd_E       4069
+#define menu_cmd_F       4070
 #define menu_cmd_G       4071
-//#define menu_mainMap     4077
+#define menu_cmd_M       4077
+#define menu_cmd_P       4080
 #define menu_cmd_quit    4081
 #define menu_cmd_R       4082
 #define menu_cmd_S       4083
-//#define menu_cmd_disarm  4094
+#define menu_cmd_T       4084
+#define menu_cmd_W       4087
+#define menu_cmd_brack1  4091
+#define menu_cmd_bkslash 4092
+#define menu_cmd_caret   4094
 #define menu_cmd_a       4097
 #define menu_cmd_c       4099
 #define menu_cmd_d       4100
@@ -138,9 +160,11 @@
 #define menu_cmd_m       4109
 #define menu_cmd_o       4111
 #define menu_cmd_p       4112
+#define menu_cmd_q       4113
 #define menu_cmd_r       4114
 #define menu_cmd_s       4115
 #define menu_cmd_t       4116
+#define menu_cmd_w       4119
 #define menu_cmd_x       4120
 #define menu_cmd_z       4122
 //#define menu_cmd_scribe  4123

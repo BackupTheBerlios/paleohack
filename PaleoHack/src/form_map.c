@@ -72,12 +72,33 @@ static void show_dungeon()
       RctSetRectangle(&r, col*unit, row*hunit + map_top, unit,hunit);
       info = floor_info[col][row];
       // instead of iffing on info, perhaps this should 'if' on floor_symbol
-      if ( true || (get_cell_seen(info)) ) {
+      if ( /*true ||*/ (get_cell_seen(info)) ) {
 	fltype = (get_cell_type(info));
 	switch(fltype) {
-	case STAIRS: case HWALL: case VWALL:
+	case CORR:
+	  //	  WinDrawRectangle(&r, 0);
+	  //	  break;
+	  WinDrawLine(col*unit + unit, row*hunit + map_top,
+		      col*unit, row*hunit + map_top + hunit);
 	  WinDrawLine(col*unit, row*hunit + map_top,
 		      col*unit + unit, row*hunit + map_top + hunit);
+	  break;
+	case STAIRS:
+	  WinDrawLine(col*unit, row*hunit + map_top,
+		      col*unit + unit, row*hunit + map_top + hunit);
+	  break;
+	  /*
+	case HWALL:
+	  WinDrawLine(col*unit,        row*hunit + map_top + hunit/2,
+		      col*unit + unit, row*hunit + map_top + hunit/2);
+	  break;
+	case VWALL:
+	  WinDrawLine(col*unit + unit/2, row*hunit + map_top,
+		      col*unit + unit/2, row*hunit + map_top + hunit);
+	  break;
+	  */
+	case HWALL: case VWALL:	case SDOOR: case LDOOR:
+	  WinDrawRectangle(&r, 0);
 	  break;
 	case ROOM:
 	  WinEraseRectangle(&r, 0);
@@ -92,9 +113,6 @@ static void show_dungeon()
 		      col*unit + 1, row*hunit + map_top + hunit+1);
 	  break;
 	  */
-	 case CORR:
-	  WinDrawRectangle(&r, 0);
-	  break;
 	case DOOR:
 	  // eh, doesn't quite work
 	  /*
@@ -104,6 +122,8 @@ static void show_dungeon()
 		      col*unit + 1,      row*hunit + map_top + hunit+1);
 	  */
 	  //	  WinInvertRectangle(&r, 0);
+	  WinEraseRectangle(&r, 0);
+	  //	  WinDrawRectangle(&r, 0);
 	  break;
 	}
       }
@@ -111,13 +131,102 @@ static void show_dungeon()
   } /* end for col */
 
   /* don't forget to put the rogue somewhere */
-  /*
-  col = sotu->roguep->col * unit - 1;
-  if (col < 0) col = 0;
-  row = sotu->roguep->row * hunit + map_top - 1;
-  RctSetRectangle(&r, col, row, 
-		      unit+1, hunit+1);
   WinDrawRectangle(&r, 0);
-  */
+  col = you.ux;
+  row = you.uy;
+  RctSetRectangle(&r, col*unit, row*hunit + map_top, unit,hunit);
+  WinDrawRectangle(&r, 0);
+  {
+    Short x, y, dy[3], h = FntCharHeight();
+    Boolean know_up, know_down;
+    x = col*unit;
+    /*
+    y = map_top/2 + map_top/3;
+    WinEraseLine(x, y - 4*hunit, x, y);
+    WinEraseLine(x, y, x - 2*unit, y - 2*unit);
+    WinEraseLine(x, y, x + 2*unit, y - 2*unit);
+    y -= map_top/2;
+    WinDrawInvertedChars("@", 1, x - FntCharWidth('@')/2, y - dy);
+    */
+    y = map_top + DROWS*hunit;
+    x = you.ux*unit - FntCharWidth('@')/2;
+    if (x < 0) x = 0;
+    dy[0] = 0;
+    dy[1] = 0;
+    dy[2] = 0;
+    know_up = get_cell_seen(floor_info[xupstair][yupstair]);
+    know_down = get_cell_seen(floor_info[xdnstair][ydnstair]);
+    if (know_up) {
+      if (you.uy > yupstair) dy[0]++;
+      else dy[1]++;
+    }
+    if (know_down) {
+      if (you.uy > ydnstair) dy[0]++;
+      else dy[2]++;
+    }
+    // if both stairs are known we might still have some adjusting to do.
+    if (dy[0] && dy[1]) dy[1]++;      // 1 1 0   -->  1 2 0
+    else if (dy[0] && dy[2]) dy[2]++; // 1 0 1   -->  1 0 2
+    else if (dy[1] && dy[1] == dy[2]) {          //     0 1 1 or 2 0 0
+      if (yupstair > ydnstair) dy[1]++; // --> 0 2 1 or 2 1 0
+      else dy[2]++;                  // or --> 0 1 2 or 2 0 1
+    }
+    WinDrawInvertedChars("@", 1, x, y + dy[0] * h);
+    if (get_cell_seen(floor_info[xupstair][yupstair])) {
+      x = xupstair*unit - FntCharWidth('<')/2;
+      if (x < 0) x = 0;
+      WinDrawInvertedChars("<", 1, x, y + dy[1] * h);
+    }
+    if (get_cell_seen(floor_info[xdnstair][ydnstair])) {
+      x = xdnstair*unit - FntCharWidth('>')/2;
+      if (x < 0) x = 0;
+      WinDrawInvertedChars(">", 1, x, y + dy[2] * h);
+    }
+  }
   return;
+}
+
+
+void map_draw_char_init()
+{
+  RectangleType r;
+  Short unit, hunit, map_top;
+  unit = ScrWidth/DCOLS;
+  hunit = unit+1;
+  map_top = (ScrHeight-DROWS*hunit)/2;
+  RctSetRectangle(&r, 0,0, ScrWidth, ScrHeight);
+  WinDrawRectangle(&r, 6);
+  RctSetRectangle(&r, 0, map_top, ScrWidth, DROWS*hunit);
+  WinEraseRectangle(&r, 0);
+}
+
+#include "display.h"
+void map_draw_char(Short x, Short y, Char c)
+{
+  Short unit, hunit, map_top;
+  Short mapx, mapy;
+  unit = ScrWidth/DCOLS;
+  hunit = unit+1;
+  map_top = (ScrHeight-DROWS*hunit)/2;
+
+  mapx = x * unit;
+  mapy = y * hunit + map_top;
+  
+  // really I should fudge around a bit first...
+  mapx += unit/2;
+  mapy += hunit/2;
+  
+#ifdef I_AM_OS_2
+  FntSetFont(ledFont);
+#else
+  FntSetFont(SmallFont);
+#endif
+  mapx -= FntCharWidth(c)/2;
+  mapy -= FntCharHeight()/2;
+  WinDrawChars(&c, 1, mapx, mapy);
+#ifdef I_AM_OS_2
+  FntSetFont(stdFont);
+#else
+  FntSetFont(BigFont);
+#endif
 }

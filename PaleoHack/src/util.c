@@ -226,7 +226,8 @@ void get_default_username(Char *buf, Short max_len)
   tmp = md_malloc(sizeof(Char) * (dlkMaxUserNameLength + 1));
   DlkGetSyncInfo(NULL, NULL, NULL, tmp, NULL, NULL);
   /* if it's too long, use the first name only */
-  if (StrLen(tmp) > max_len-1) {
+  //  if (StrLen(tmp) > max_len-1) {
+  if (StrLen(tmp) > 8) {
     first_wspace = StrChr(tmp, spaceChr);
     if (first_wspace)
       *(first_wspace) = '\0';
@@ -294,6 +295,17 @@ Short WinDrawChars_ctr(Char *buf, Short len, Short x_mid, Short y)
   Short x, width;
   width = FntCharsWidth(buf, len);
   x = x_mid - width / 2;
+  if (x < 0) x = 0;
+  WinDrawChars(buf, len, x, y);
+  return x;
+}
+
+// Right justify.
+Short WinDrawChars_rj(Char *buf, Short len, Short x_right, Short y)
+{
+  Short x, width;
+  width = FntCharsWidth(buf, len);
+  x = x_right - width;
   if (x < 0) x = 0;
   WinDrawChars(buf, len, x, y);
   return x;

@@ -17,6 +17,8 @@ static void show_rumor(Short i) SEC_4;
 static void outrumor() SEC_4;
 
 extern Short multi; // living in movesee.c right now..
+extern void (*afternmv)();
+
 
 //#define	TTSZ	SIZE(tintxts)
 #define NUM_TIN_TYPES 6
@@ -170,7 +172,7 @@ static Boolean do_eat_tin(obj_t *otmp) // XXX there may be a bug in hre
 // This will do the eating, after you have an otmp that is in your inventory.
 Boolean do_eat(obj_t *otmp)
 {
-  static Char msgbuf[BUFSZ];
+  //  static Char msgbuf[BUFSZ];
   objclass_t *ftmp;
 
   if (otmp->otype == TIN)
@@ -194,7 +196,7 @@ Boolean do_eat(obj_t *otmp)
       else
 	message("The world spins and goes dark.");
       nomul(-rnd(10));
-      //      nomovemsg = "You are conscious again."; // XXX
+      spin_multi("You are conscious again."); // XXX
     }
     lesshungry(ftmp->nutrition / 4);
   } else {
@@ -216,7 +218,7 @@ Boolean do_eat(obj_t *otmp)
 	multi -= 2; // XXXX hey!  I need another while loop!!!
       }
       lesshungry(ftmp->nutrition);
-      //      if (multi < 0) nomovemsg = "You finished your meal."; // XXX
+      if (multi < 0) spin_multi("You finished your meal."); // XXX
       break;
     case TRIPE_RATION:
       message("Yak - dog food!");
@@ -253,11 +255,12 @@ Boolean do_eat(obj_t *otmp)
 				// This stuff seems to be VERY healthy!
 	if (you.ustrmax < 118) you.ustrmax++;
 	if (you.ustr < you.ustrmax) you.ustr++;
+	flags.botl |= BOTL_STR;
 	you.uhp += rnd(20);
 	if (you.uhp > you.uhpmax) {
 	  if (!rund(17)) you.uhpmax++;
 	  you.uhp = you.uhpmax;
-	  flags.botl |= (BOTL_HP | BOTL_STR);
+	  flags.botl |= BOTL_HP;
 	}
 	heal_legs();
       }
@@ -266,12 +269,12 @@ Boolean do_eat(obj_t *otmp)
   }
  eatx:
   if (you.dead) return false;
-  //  if (multi < 0 && !nomovemsg) { // XXX
-      StrPrintF(msgbuf, "You finished eating the %s.",
-	        oc_names + ftmp->oc_name_offset);
-    //    nomovemsg = msgbuf; // XXX
-    //  }
-    useup(otmp); // XXX there may be a bug in here
+  if (multi < 0 /*&& !nomovemsg*/ ) { // XXX
+    StrPrintF(ScratchBuffer, "You finished eating the %s.",
+    	      oc_names + ftmp->oc_name_offset);
+    spin_multi(ScratchBuffer);
+  }
+  useup(otmp); // XXX there may be a bug in here
   return true;
 }
 
@@ -336,8 +339,8 @@ static void newuhs(Boolean incr)
       if (you.uhs != FAINTED && multi >= 0) {  // %%
 	message("You faint from lack of food.");
 	nomul(-10+(you.uhunger/10));
-	//	nomovemsg = "You regain consciousness."; // XXX
-	//	afternmv = unfaint; // XXX
+	spin_multi("You regain consciousness."); // XXX
+	unfaint(); // XXX
 	newhs = FAINTED;
       }
     } else
@@ -449,7 +452,8 @@ static Boolean eatcorpse(struct obj *otmp)
   case 'y': // 'y' did something in Quest.
     /* fall into next case */
   case 'B':
-    Confusion = 50;
+    //    Confusion = 50; // Bug fix from 1980s:
+    Confusion += 50;
     break;
   case 'D':
     Fire_resistance |= INTRINSIC;
@@ -480,14 +484,13 @@ static Boolean eatcorpse(struct obj *otmp)
     break;
   case 'M':
     message("You cannot resist the temptation to mimic a treasure chest.");
-    /* // some stuff that is not implemented yet
-       tp = true;
-       nomul(-30);
-       afternmv = M_eat_done; // XXX
-       nomovemsg = "You now again prefer mimicking a human."; // XXX
-       you.usym = '$';
-       prme();
-    */
+    tp = true;
+    // some stuff that is not tested yet...
+    nomul(-30);
+    you.usym = '$';
+    prme();
+    spin_multi("You now again prefer mimicking a human."); // XXX
+    M_eat_done();
     break;
   }
   return tp;

@@ -55,6 +55,7 @@ Short visible_x = 0, visible_y = 0;
 
 #define qWinEraseRectangle WinEraseRectangle
 #define qWinDrawChars WinDrawChars
+#define qWinDrawInvertedChars WinDrawInvertedChars
 #define qWinDrawLine WinDrawLine
 
 UChar MsgTopY = 0;
@@ -151,6 +152,14 @@ Char loc_symbol(Short x, Short y) // Equivalent of "news0"
 }
 
 
+Boolean fits_on_screen(Short x, Short y)
+{
+  Short v_h = itsy_on ? visible_h_itsy : visible_h;
+  Short v_w = itsy_on ? visible_w_itsy : visible_w;
+  x -= visible_x;
+  y -= visible_y;
+  return (x >= 0 && y >= 0 && x < v_w && y < v_h);
+}
 
 
 /*
@@ -898,6 +907,9 @@ void draw_directional()
   case 't':
     alert_message("Throwing...");
     break;
+  case '^':
+    alert_message("Identify trap...");
+    break;
     // ...
   }
   xor_directional();
@@ -1057,13 +1069,15 @@ void preempt_messages()
   last_old_message_shown = SAVED_MSGS - 1;  
 }
 
-// maybe dangerous..  and still not quite right, sometimes does too many shows
+// should be working properly now (don't call show_messages after calling it!)
 void show_all_messages()
 {
-  while (last_old_message_shown < SAVED_MSGS-2) {
+  while (last_old_message_shown < SAVED_MSGS-1) {
     show_messages();
-    if (last_old_message_shown < SAVED_MSGS-1)
+    if (last_old_message_shown < SAVED_MSGS-1) {
+      show_a_more(2, true); // invert the more
       SysTaskDelay((3*SysTicksPerSecond())/2); // XXXX
+    }
   }
 }
 
@@ -1120,7 +1134,7 @@ void show_messages()
     } // finished all messages or ran out of space.
     if ((last_old_message_shown < SAVED_MSGS-1)/* || (last_command == 'I')*/)
       //show_a_more(lines_used); // prompt for the Any Key with "--more--"
-      show_a_more(2); // prompt for the Any Key with "--more--"
+      show_a_more(2, false); // prompt for the Any Key with "--more--"
     else {
       if (lines_used > 1)	// see if there was room for hit points
 	; //print_stats_hp(str_width); // this will decide whether to print them
@@ -1136,10 +1150,11 @@ void show_messages()
 }
 // This is what prints the MORE in lower right corner of screen.
 // A couple non-display.c routines also would like to use it..
-void show_a_more(Short lines_used)
+void show_a_more(Short lines_used, Boolean invert)
 {
   DWord version;
   Boolean large = false;
+  Short x, y;
   FtrGet(sysFtrCreator, sysFtrNumROMVersion, &version);
 #ifdef I_AM_OS_2
   if (version < 0x03000000l) FntSetFont(ledFont);
@@ -1150,7 +1165,12 @@ void show_a_more(Short lines_used)
 #endif
   //    WinDrawChars("--more--", 8, 120, 134 + 11*lines_used);
   //WinDrawChars("MORE", 8, (large ? 130 : 140), 134 + 11*lines_used - 3);
-  qWinDrawChars("MORE", 8, (large ? 130 : 140), MsgTopY + 11*lines_used - 5);
+  x = (large ? 130 : 140);
+  y = MsgTopY + 11*lines_used - 5;
+  if (invert)
+    qWinDrawInvertedChars("MORE", 4, x, y);
+  else
+    qWinDrawChars("MORE", 4, x, y);
 #ifdef I_AM_OS_2
   FntSetFont(stdFont);
 #else
@@ -1202,12 +1222,17 @@ void clear_message_log()
 
 
 
-UChar stats_x[11] = {0,00,0,0,0,0,0,0,0,0};
+UChar stats_x[13] = {0,0,0,0,0,0,0,0,0,0,0,0,0};
+#define NUM_HUNGER_STR 7
+Char hunger_str[NUM_HUNGER_STR][9] = {
+  "satiated", " ", "hungry", "weak", "fainting", "fainted", "starved"
+};
 static void print_stats_where()
 {
+  /*
   stats_x[0] = FntCharsWidth("L", 1);
   stats_x[1] = FntCharsWidth("99 ", 2+1);
-  stats_x[2] = FntCharsWidth("$", 1);
+  stats_x[2] = FntCharsWidth("t", 1); // FntCharsWidth("$", 1);
   stats_x[3] = FntCharsWidth("1234567890 ", 10+1);
   stats_x[4] = FntCharsWidth("Hp", 2);
   stats_x[5] = FntCharsWidth("999(999) ", 8+1);
@@ -1218,11 +1243,33 @@ static void print_stats_where()
   stats_x[9] = FntCharsWidth("18/00 ", 5+1);
   stats_x[10] = FntCharsWidth("Exp ", 4);
   // then %2d/%10d - that is the last thing on the second line.
+  */
+  Short i;
+  stats_x[0] = FntCharsWidth("L ", 2);
+  stats_x[1] = FntCharsWidth("99 ", 2+1);
+  stats_x[2] = FntCharsWidth("Hp ", 3);
+  stats_x[3] = FntCharsWidth("999(999) ", 8+1);
+  stats_x[4] = FntCharsWidth("Ac ", 3);
+  stats_x[5] = FntCharsWidth("-20 ", 3+1);
+  stats_x[6] = FntCharsWidth("Str ", 4);
+  stats_x[7] = FntCharsWidth("18/00 ", 5+1);
+  // End of the first line.
+  //
+  stats_x[8] = FntCharsWidth("Exp ", 4);
+  stats_x[9] = FntCharsWidth("14/409610 ", 2+1+6+1);
+  // Max level is 14, this takes 40961 points to achieve.  You can still
+  //    get more experience but you don't get to a higher level.
+  //    Maybe six digits will be enough for experience points?
+  stats_x[10] = 0; // figure out the longest hunger-string
+  for (i = 0 ; i < NUM_HUNGER_STR ; i++) {
+    Short len = FntCharsWidth(hunger_str[i], StrLen(hunger_str[i]));
+    if (len > stats_x[10]) stats_x[10] = len;
+  }
+  stats_x[10] += FntCharWidth(' ');
+  //  stats_x[11] = FntCharsWidth("t1234567890", 10+1);
+  stats_x[11] = FntCharsWidth("1234567890", 10);
 }
 
-Char hunger_str[7][9] = {
-  "satiated", " ", "hungry", "weak", "fainting", "fainted", "starved"
-};
 
 typedef struct {
   Short dlevel;
@@ -1239,66 +1286,110 @@ test_stats oldstats = {
   0, 0L, 0, 0, 0, 0, 0, 0
 };
 
+#define LineHeight 11
 void print_stats(UInt which_stats)
 {
   Char buf[40];
   RectangleType r;
-  Short x=0, y = StatsTopY;
+  Short x=0, y = StatsTopY, k = 0;
 
   // Level, Gold, Hp, Ac, Str, Exp, [hunger], [moves].
   // dlevel, u.ugold, u.uhp, u.uhpmax, u.uac, u.ustr, u.ulevel, u.uexp, ...
   // see hack103/pri.c
 
-  qWinDrawLine(0,y-1,160,y-1);
+  qWinDrawLine(0,y-1,SCR_WIDTH,y-1);
   if (stats_x[0] == 0) print_stats_where();
 
-  RctSetRectangle(&r, 0, y, 160, 11);
-  qWinEraseRectangle(&r, 0);
-  x = 0; 
-  WinDrawChars("L", 1, x, y);
-  x += stats_x[0] + stats_x[1];
-  WinDrawChars("$", 1, x, y);
-  x += stats_x[2] + stats_x[3];
-  WinDrawChars("Hp", 2, x, y);
+  if (flags.botl == BOTL_ALL) {
+    // I should really only do these if we need to redraw all stats.
+    RctSetRectangle(&r, 0, y, SCR_WIDTH, LineHeight);
+    qWinEraseRectangle(&r, 0);
+    x = 0; 
+    k = 0;
+    WinDrawChars("L", 1, x, y);
+    x += stats_x[k++]; // 0
+    x += stats_x[k++]; // 1
+    WinDrawChars("Hp", 2, x, y);
+    x += stats_x[k++]; // 2
+    x += stats_x[k++]; // 3
+    WinDrawChars("Ac", 2, x, y);
+    x += stats_x[k++]; // 4
+    x += stats_x[k++]; // 5
+    WinDrawChars("Str", 3, x, y);
+    k += 2; // skip 6 and 7
+    x = 0;
+    y += LineHeight;
+    RctSetRectangle(&r, 0, y, SCR_WIDTH, LineHeight);
+    qWinEraseRectangle(&r, 0);
+    WinDrawChars("Exp", 3, x, y);
+    x += stats_x[k++]; // 8
+    x += stats_x[k++]; // 9
+    // (skip 10 and 11)
+  }
   x = 0;
-  x += stats_x[0];
-  StrPrintF(buf, "%d", dlevel); // dungeon level:  dlevel.  Max of 40.
-  WinDrawChars(buf, StrLen(buf), x, y);
-  x += stats_x[1] + stats_x[2];
-  StrPrintF(buf, "%ld", you.ugold); // gold
-  WinDrawChars(buf, StrLen(buf), (StrLen(buf) <= 9) ? x+2 : x, y);
-  x += stats_x[3] + stats_x[4];
-  StrPrintF(buf, "%d(%d)", you.uhp, you.uhpmax); // hp. guessing max is 999???
-  WinDrawChars(buf, StrLen(buf), (StrLen(buf) <= 7) ? x+2 : x, y);
-  x += stats_x[5];
-  StrPrintF(buf, "%s", hunger_str[you.uhs]); /* see hu_stat in eat.c,
-						   indexed by u.uhs */
-  WinDrawChars(buf, StrLen(buf), x, y);
-  y += 11;
-  RctSetRectangle(&r, 0, y, 160, 11);
-  WinEraseRectangle(&r, 0);
+  y = StatsTopY;
+  k = 0;
+
+  x += stats_x[k++]; // 0
+  if (flags.botl & BOTL_DLEVEL) {
+    RctSetRectangle(&r, x,y, stats_x[k], LineHeight); qWinEraseRectangle(&r,0);
+    StrPrintF(buf, "%d", dlevel); // dungeon level:  dlevel.  Max of 40.
+    WinDrawChars(buf, StrLen(buf), x, y);
+  }
+  x += stats_x[k++]; // 1
+  x += stats_x[k++]; // 2
+  if (flags.botl & BOTL_HP) {
+    RctSetRectangle(&r, x,y, stats_x[k], LineHeight); qWinEraseRectangle(&r,0);
+    StrPrintF(buf, "%d(%d)", you.uhp, you.uhpmax); // hp. guessing max is 999??
+    WinDrawChars(buf, StrLen(buf), x, y);
+  }
+  x += stats_x[k++]; // 3
+  x += stats_x[k++]; // 4
+  if (flags.botl & BOTL_AC) {
+    RctSetRectangle(&r, x,y, stats_x[k], LineHeight); qWinEraseRectangle(&r,0);
+    StrPrintF(buf, "%d", you.uac); // Don't know if this is limited..
+    WinDrawChars(buf, StrLen(buf), x, y);
+  }
+  x += stats_x[k++]; // 5
+  x += stats_x[k++]; // 6
+  if (flags.botl & BOTL_STR) {
+    RctSetRectangle(&r, x,y, stats_x[k], LineHeight); qWinEraseRectangle(&r,0);
+    if (you.ustr <= 18)
+      StrPrintF(buf, "%d", you.ustr); // 18, 18/(01-99), 18/00 ...
+    else
+      StrPrintF(buf, "%d%s%d", 18, 
+		((you.ustr < 18+10) || (you.ustr > 18+99)) ? "/0" : "/",
+		(you.ustr > 18+99) ? 0 : you.ustr-18 );
+    WinDrawChars(buf, StrLen(buf), x, y);
+  }
+  k++; // skip 7
   x = 0;
-  WinDrawChars("Ac", 2, x, y);
-  x += stats_x[6] + stats_x[7];
-  WinDrawChars("Str", 3, x, y);
-  x += stats_x[8] + stats_x[9];
-  WinDrawChars("Exp", 3, x, y);
-  x = 0;
-  x += stats_x[6];
-  StrPrintF(buf, "%d", you.uac); // AC, Don't know if this is limited..
-  WinDrawChars(buf, StrLen(buf), x, y);
-  x += stats_x[7] + stats_x[8];
-  if (you.ustr <= 18)
-    StrPrintF(buf, "%d", you.ustr); // 18, 18/(01-99), 18/00 ...
-  else
-    StrPrintF(buf, "%d%s%d", 18, 
-	      ((you.ustr < 18+10) || (you.ustr > 18+99)) ? "/0" : "/",
-	      (you.ustr > 18+99) ? 0 : you.ustr-18 );
-  WinDrawChars(buf, StrLen(buf), x, y);
-  x += stats_x[9] + stats_x[10];
-  StrPrintF(buf, "%d/%ld", you.ulevel, you.uexp); // don't know if limited.
-  WinDrawChars(buf, StrLen(buf), x, y);
-  //  StrPrintF(buf, "%ld", 1234567890L); // number of moves.  SKIP it.
+  y += LineHeight;
+  x += stats_x[k++]; // 8
+  if (flags.botl & BOTL_EXP) {
+    RctSetRectangle(&r, x,y, stats_x[k], LineHeight); qWinEraseRectangle(&r,0);
+    StrPrintF(buf, "%d/%ld", you.ulevel, you.uexp);//don't know if uexp limited
+    WinDrawChars(buf, StrLen(buf), x, y);
+  }
+  x += stats_x[k++]; // 9
+  if (flags.botl & BOTL_HUNGER) {
+    RctSetRectangle(&r, x,y, stats_x[k], LineHeight); qWinEraseRectangle(&r,0);
+    StrPrintF(buf, "%s", hunger_str[you.uhs]);
+    WinDrawChars(buf, StrLen(buf), x, y);
+  }
+  x += stats_x[k++]; // 10
+  if (true) {
+    RctSetRectangle(&r, x,y, stats_x[k], LineHeight); qWinEraseRectangle(&r,0);
+    if (moves >= 1000000000L) {
+      StrPrintF(buf, "%ld", moves); //StrPrintF(buf, "t%ld", moves);
+      WinDrawChars(buf, StrLen(buf), x, y);
+      x += stats_x[k++]; // 11
+    } else {
+      StrPrintF(buf, "%ld", moves); //StrPrintF(buf, "t %ld", moves);
+      x += stats_x[k++]; // 11
+      WinDrawChars(buf, StrLen(buf), x - FntCharsWidth(buf, StrLen(buf)), y);
+    }
+  }
 
   /*
   oldstats.dlevel = dlevel;

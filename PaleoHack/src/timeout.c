@@ -18,6 +18,9 @@ void timeout()
     if ((upp->p_flags & TIMEOUT) && !--upp->p_flags) {
       if (false) ; //if (upp->p_tofn) (*upp->p_tofn)(); // XXXX not implemented yet!!!!!!
       else switch(upp - you.uprops) {
+      case (PROP(RIN_LEVITATION)): // XXXX in place of tofn
+	float_down();
+	break;
       case STONED:
 	killer = "cockatrice";
 	done("died");

@@ -217,9 +217,11 @@ Short out_ice_box(obj_t *obj) // Keep this in the default section! Func ptrs!
 
 
 // I am using "askchain" and function pointers but it might be oogy.
+// hey, even if you do 'no no' it should take a turn
 static Boolean use_ice_box(obj_t *obj) // keep in default section to be safe
 {
   Short cnt = 0;
+  Boolean did = false;
   obj_t *otmp;
   current_ice_box = obj;	/* for use by in/out_ice_box */
   for (otmp = fcobj; otmp; otmp = otmp->nobj)
@@ -227,10 +229,10 @@ static Boolean use_ice_box(obj_t *obj) // keep in default section to be safe
       cnt++;
   if (cnt) {
     if (FrmCustomAlert(IceBoxP, "take", "out of", NULL) == 0) // 0==Yes 1==No
-      if (askchain(fcobj, NULL, "Take out", false, out_ice_box, ck_ice_box, 0))
-	return true;
+      did = askchain(fcobj, NULL, "Take out", false,
+		     out_ice_box, ck_ice_box, 0);
     if (FrmCustomAlert(IceBoxP, "put", "in", NULL) != 0) // 0==Yes 1==No
-      return false;
+      return true; //return did;
   } else {
     //    message("Your ice-box is empty.");
     //    show_messages();
@@ -241,9 +243,11 @@ static Boolean use_ice_box(obj_t *obj) // keep in default section to be safe
   if (!otmp || !put_in_ice_box(otmp))
     flags.move = multi = 0;
   */
-  if (getobj_init("0#%", "put (in box)", ACT_REFRIGERATE))
+  if (getobj_init("0#%", "put (in box)", ACT_REFRIGERATE)) {
     FrmPopupForm(InvActionForm);
-  return false;
+    return false;
+  }
+  return true; // return did;
 }
 
 
@@ -399,7 +403,8 @@ void dighole()
       ttmp = maketrap(you.ux, you.uy, TRAPDOOR);
     ttmp->trap_info |= SEEN_TRAP;
     message("You've made a hole in the floor.");
-    if (!you.ustuck) {
+    //    if (!you.ustuck) { // Bugfix from the 1980s: add !levitation.
+    if (!you.ustuck && !Levitation) {
       if (inshop())
       	shopdig(true);
       message("You fall through ...");

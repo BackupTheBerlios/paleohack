@@ -33,6 +33,7 @@ static void handle_inv_call() SEC_2;
 static void do_inv_wield(Word lst_i) SEC_2;
 static void handle_inv_engrave() SEC_2;
 static Boolean handle_invbtn_extra() SEC_2;
+static Boolean handle_invact_none() SEC_5;
 
 static void show_inven(FormPtr frm, ListPtr lst, Boolean skip_some) SEC_2;
 static void free_inventory_select(FormPtr frm) SEC_2;
@@ -278,7 +279,8 @@ static Boolean handle_invbtn_frob(FormPtr frm, Word lst_i, Boolean dwim)
     otmp = get_nth_item(inventory_item);
     if (!otmp) return handled; // BUG if this happens.
     iverb = (dwim ? do_what(otmp) : getobj_info.action);
-    if (perform_action(frm, lst_i, otmp, iverb, &worked)) return handled;
+    if (perform_action(frm, lst_i, otmp, iverb, &worked))
+      return handled;
     if (worked) {
       tick();
       show_messages();
@@ -288,30 +290,42 @@ static Boolean handle_invbtn_frob(FormPtr frm, Word lst_i, Boolean dwim)
   return handled;
 }
 
+extern Boolean took_time;
 static Boolean perform_action(FormPtr frm, Word lst_i, obj_t *otmp,
 			      Short iverb, Boolean *worked)
 {
   //  ListPtr lst = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, lst_i));
   Boolean leave = true;
+  Boolean ia = (FrmGetActiveFormID() == InvActionForm);
+  tri_val_t result;
   switch(iverb) {
     // First the ones that don't exit:
   case ACT_PUTUP: inventory_item = -1; // fall through
   case ACT_WIELD: //
     do_inv_wield(lst_i); // does some of the work over again.. oh well
+    if (ia) { end_turn_start_turn(); return true; }
     break;
   case ACT_AOFF: 
+    if (ia) LeaveForm();
     *worked = do_remove_armor(otmp);
+    if (ia) { end_turn_start_turn(); return true; }
     break;
   case ACT_ROFF:
+    if (ia) LeaveForm();
     *worked = do_remove_ring(otmp);
+    if (ia) { end_turn_start_turn(); return true; }
     break;
   case ACT_AWEAR: //
+    if (ia) LeaveForm();
     *worked = do_wear_armor(otmp);
+    if (ia) { end_turn_start_turn(); return true; }
     break;
   case ACT_RWEAR: //
+    if (ia) LeaveForm();
     *worked = do_wear_ring(otmp);
+    if (ia) { end_turn_start_turn(); return true; }
     break;
-    // Next the ones that DO exit:
+    // Next the ones that ALWAYS exit:
   case ACT_EAT: //
     free_inventory_select(frm);
     LeaveForm();
@@ -321,28 +335,37 @@ static Boolean perform_action(FormPtr frm, Word lst_i, obj_t *otmp,
   case ACT_QUAFF: //
     free_inventory_select(frm);
     LeaveForm();
-    *worked = do_drink(otmp); // returns true if action is "complete"
-    if (*worked) // otherwise, another form will finish the action for us.
-      end_turn_start_turn();
+    //   *worked = do_drink(otmp); // returns true if action is "complete"
+    //   if (*worked) // otherwise, another form will finish the action for us.
+    //     end_turn_start_turn();
+    result = do_drink(otmp);
+    took_time = (result != NO_OP);
+    if (result != GO_ON) end_turn_start_turn();
     return leave;
   case ACT_READ: //
     free_inventory_select(frm);
     LeaveForm();
-    if (do_read(otmp)) // returns true if we need to 'tick'
-      end_turn_start_turn();
+    result = do_read(otmp);
+    took_time = (result != NO_OP);
+    if (result != GO_ON) end_turn_start_turn();
     return leave;
   case ACT_ZAP: //
     free_inventory_select(frm);
     LeaveForm();
-    if (do_zap(otmp)) // returns true if we need to 'tick'
+    if (do_zap(otmp)) { // returns true if we need to 'tick'
+      took_time = true;
       end_turn_start_turn();
+    }
     return leave;
   case ACT_APPLY: //
     free_inventory_select(frm);
     LeaveForm();
-    if (do_apply(otmp)) // returns true if we need to 'tick'
+    if (do_apply(otmp)) { // returns true if we need to 'tick'
+      took_time = true;
       end_turn_start_turn();
+    }
     return leave;
+    // Next the ones that always exit but maybe don't take time?
   case ACT_CALL:
     handle_inv_call();
     break;
@@ -365,10 +388,11 @@ static Boolean perform_action(FormPtr frm, Word lst_i, obj_t *otmp,
     //      flags.move = multi = 0;
     free_inventory_select(frm);
     LeaveForm();
-    if (put_in_ice_box(otmp)) // returns true if we need to 'tick'
-      end_turn_start_turn();
-    else
-      show_messages(); // seems like a good idea
+    put_in_ice_box(otmp); // returns true if we actually did something.
+    // in hack, messing with the ice box actually always takes time,
+    // even if we dn't do anything.
+    took_time = true;
+    end_turn_start_turn();
     return leave;
   }
   return false;
@@ -378,6 +402,8 @@ static Boolean perform_action(FormPtr frm, Word lst_i, obj_t *otmp,
 static Boolean handle_invbtn_drop(Word lst_i)
 {
   obj_t *otmp;
+  Word curfrm = FrmGetActiveFormID();
+
   if (inventory_item != -1) {
     //    free_inventory_select(frm);
     if ((otmp = get_nth_item(inventory_item))) // BUG if this isn't true..
@@ -478,25 +504,32 @@ static void handle_inv_call()
 static void do_inv_wield(Word lst_i)
 {
   obj_t *wep = NULL;
+  Word curfrm = FrmGetActiveFormID();
+
   if (inventory_item != -1)
     wep = get_nth_item(inventory_item);
+  if (curfrm == InvActionForm)
+    LeaveForm();
   if (do_wield(wep)) {
     tick();
-    show_messages();
-    refresh_inv(lst_i);
+    if (curfrm == InvForm) {
+      show_messages();
+      refresh_inv(lst_i);
+    }
   }
 }
 
 static void handle_inv_engrave()
 {
   //  obj_t *otmp = NULL;
-  if (inventory_item != -1) {
+  if (inventory_item != -1)
     curr_state.item = get_nth_item(inventory_item);
-    // might be NULL?
-    LeaveForm();
-    if (check_do_engrave())
-      tick(); // "failed but took time."
-  }
+  else 
+    curr_state.item = NULL;
+  // might be NULL?
+  LeaveForm();
+  if (check_do_engrave())
+    tick(); // "failed but took time."
 }
 
 
@@ -740,8 +773,8 @@ static void dwimify_buttons(FormPtr frm, Short item)
   }
   */
 
-  btn = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, btn_if_extra));
-  CtlShowControl(btn);
+  //  btn = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, btn_if_extra));
+  //  CtlShowControl(btn);
 
   // hide everything if nothing selected
   if (item == -1 /*|| in_a_store*/ ) {
@@ -876,7 +909,10 @@ static void update_ia_btns(FormPtr frm)
   btn = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, btn_ia_all));
   CtlHideControl(btn);
   btn = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, btn_ia_none));
-  CtlHideControl(btn);
+  if (getobj_info.allownone)
+    CtlShowControl(btn);
+  else
+    CtlHideControl(btn);
   btn = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, btn_ia_cancel));
   CtlShowControl(btn);
 }
@@ -948,6 +984,7 @@ Boolean InvAction_Form_HandleEvent(EventPtr e)
       handled = true;
       break;
     case '\n': hit_button_if_usable(frm, btn_ia_frob); break;
+    case '-': hit_button_if_usable(frm, btn_ia_none); break;
     case 27: hit_button_if_usable(frm, btn_ia_cancel); break;
     case ' ':
       // for some reason this doesn't seem to work right.
@@ -1002,6 +1039,9 @@ Boolean InvAction_Form_HandleEvent(EventPtr e)
     case btn_ia_all:
       //      handled = handle_invact_all();
       break;
+    case btn_ia_none:
+      handled = handle_invact_none();
+      break;
     case btn_ia_cancel:
       // may need to take a turn in some cases
       handled = true;
@@ -1016,6 +1056,26 @@ Boolean InvAction_Form_HandleEvent(EventPtr e)
   return handled;
 }
 
+
+static Boolean handle_invact_none()
+{
+  if (!getobj_info.allownone) return false; // should not happen.
+  switch (getobj_info.action) {
+  case ACT_WIELD:
+    curr_state.item = NULL;
+    inventory_item = -1;
+    do_inv_wield(list_iaf);
+    break;
+  case ACT_ENGRAVE:
+    curr_state.item = NULL;
+    inventory_item = -1;
+    handle_inv_engrave();
+    break;
+  default:
+    return false;
+  }
+  return true;
+}
 
 // Tell show_inven() whether to skip THIS inventory item.
 static Boolean skip_this_item(obj_t *otmp)

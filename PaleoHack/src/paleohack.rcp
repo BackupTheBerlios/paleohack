@@ -26,20 +26,77 @@ END
 
 MENU ID MainFormMenu
 BEGIN
-    PULLDOWN "Blah"
+    PULLDOWN "Show"
     BEGIN
-        MENUITEM "About PaleoHack"       ID menu_mainAbout
-        MENUITEM "Map"       ID menu_mainMap "M"
-	MENUITEM "Message Log   "          ID menu_mainMsgs "L"
-	MENUITEM "Font   "          ID menu_mainFont "F"
-        MENUITEM "Quit"      ID menu_mainQuit
-        MENUITEM "Redraw"      ID menu_mainRedraw
-        MENUITEM "Test stuff"      ID menu_mainTest
-        MENUITEM "Wish!"      ID menu_mainWiz1
+        MENUITEM "Map"                ID menu_mainMap "M"
+	MENUITEM "Message Log   "     ID menu_mainMsgs "L"
+	MENUITEM SEPARATOR
+	MENUITEM "(/) what is that" ID  menu_cmd_slash
+	MENUITEM "(\\) discoveries" ID  menu_cmd_bkslash
+	MENUITEM "(:)  look here" ID  menu_cmd_colon
+	MENUITEM SEPARATOR
+        MENUITEM "Instructions"       ID menu_mainHelp
+        MENUITEM "About PaleoHack"    ID menu_mainAbout
+        MENUITEM "High Scores"        ID menu_mainScores
+	MENUITEM SEPARATOR
+        MENUITEM "Quit"               ID menu_mainQuit "Q"
     END
-    PULLDOWN "Blah"
+    PULLDOWN "Go/Do"
     BEGIN
-	MENUITEM "(i)      Inventory..." ID  menu_cmd_i
+	MENUITEM "(^T) teleport" ID  menu_cmd_CtrlT
+	MENUITEM "(<) up" ID  menu_cmd_lt
+	MENUITEM "(>) down" ID  menu_cmd_gt
+	MENUITEM SEPARATOR
+	MENUITEM "(f) run" ID  menu_cmd_f
+	MENUITEM "(F) run more" ID  menu_cmd_F
+	MENUITEM "(m) move onto" ID  menu_cmd_m
+	MENUITEM "(M) run onto" ID  menu_cmd_M
+	MENUITEM SEPARATOR
+	MENUITEM "(.) rest" ID  menu_cmd_dot
+	MENUITEM "(,) pickup" ID  menu_cmd_comma
+	MENUITEM "(E) Engrave" ID  menu_cmd_E
+	MENUITEM "(s) search" ID  menu_cmd_s
+	MENUITEM "(^) trap id" ID  menu_cmd_caret
+    END
+    PULLDOWN "Use"
+    BEGIN
+	MENUITEM "(i) inventory" ID  menu_cmd_i
+	MENUITEM "($) count gold" ID  menu_cmd_dollar
+	MENUITEM "(p) pay bill" ID  menu_cmd_p
+	MENUITEM SEPARATOR
+	MENUITEM "(c) call" ID  menu_cmd_c
+	MENUITEM "(C) name" ID  menu_cmd_C
+	MENUITEM SEPARATOR
+	MENUITEM "(a) apply" ID  menu_cmd_a
+	MENUITEM "(e) eat" ID  menu_cmd_e
+	MENUITEM "(q) quaff" ID  menu_cmd_q
+	MENUITEM "(r) read" ID  menu_cmd_r
+	MENUITEM SEPARATOR
+	MENUITEM "(t) throw" ID  menu_cmd_t
+	MENUITEM "(z) zap" ID  menu_cmd_z
+    END
+    PULLDOWN "Put"
+    BEGIN
+	MENUITEM "(d) drop" ID  menu_cmd_d
+	MENUITEM "(D) Drop" ID  menu_cmd_D
+	MENUITEM SEPARATOR
+	MENUITEM " )  curr weap" ID  menu_cmd_paren2
+	MENUITEM " [  curr arm" ID  menu_cmd_brack1
+	MENUITEM " =  curr rings" ID  menu_cmd_eq
+	MENUITEM SEPARATOR
+	MENUITEM "(w) wield" ID  menu_cmd_w
+	MENUITEM "(P) Put on ring" ID  menu_cmd_P
+	MENUITEM "(R) Remove ring" ID  menu_cmd_R
+	MENUITEM "(T) Take off armor" ID  menu_cmd_T
+	MENUITEM "(W) Wear armor" ID  menu_cmd_W
+    END
+    PULLDOWN "Set"
+    BEGIN
+	MENUITEM "Font   "            ID menu_mainFont "F"
+	MENUITEM SEPARATOR
+        MENUITEM "Redraw"      ID menu_mainRedraw
+        MENUITEM "Test stuff"  ID menu_mainTest
+        MENUITEM "Wish!"       ID menu_mainWiz1
     END
 END
 
@@ -97,7 +154,7 @@ BEGIN
 	FORMBITMAP AT (8 19) BITMAP bitmap_cat
 	FORMBITMAP AT (98 15) BITMAP bitmap_ph
 	LABEL "PaleoHack v0.01" AUTOID AT (84 40)
-	LABEL "A clone of" AUTOID AT (PrevLeft PrevTop+11)
+	LABEL "A port of" AUTOID AT (PrevLeft PrevTop+11)
 	LABEL "Andries Brouwer's" AUTOID AT (PrevLeft PrevTop+11)
 	LABEL "Hack 1.0.3" AUTOID AT (PrevLeft PrevTop+11)
 
@@ -119,9 +176,9 @@ BEGIN
   LIST "foo" "bar" "baz" ID list_iaf AT (0 15 156 110)
 
   BUTTON "use or apply" ID btn_ia_frob AT (3 141 AUTO AUTO) NONUSABLE
-  BUTTON "None" ID btn_ia_none AT (PrevRight+5 PrevTop AUTO PrevHeight)
+  BUTTON "All" ID btn_ia_all AT (PrevRight+5 PrevTop AUTO PrevHeight)
       NONUSABLE
-  BUTTON "All" ID btn_ia_all AT (PrevLeft PrevTop PrevWidth PrevHeight)
+  BUTTON "-" ID btn_ia_none AT (PrevLeft PrevTop PrevWidth PrevHeight)
       NONUSABLE
   BUTTON "Cancel" ID btn_ia_cancel AT (109 PrevTop 42 PrevHeight)
       NONUSABLE
@@ -144,8 +201,6 @@ BEGIN
   BUTTON "throw" ID btn_if_throw AT (PrevRight+5 PrevTop PrevWidth PrevHeight)
       NONUSABLE
   BUTTON "Done" ID btn_if_cancel AT (PrevRight+5 PrevTop 31 PrevHeight)
-  BUTTON "[E]" ID btn_if_extra AT (PrevRight+3 PrevTop 16 PrevHeight) NOFRAME
-      NONUSABLE
 END
 //BUTTON "[E]" ID btn_if_eq AT (PrevRight+3 PrevTop 16 PrevHeight) NOFRAME
 // hm... these btns are 14 pix high including the border...
@@ -154,6 +209,8 @@ END
 // and list is 2 pixels below top of screen.
 //
 // Hey, I could change E into a popup "filter by type" thingy.
+//  BUTTON "[E]" ID btn_if_extra AT (PrevRight+3 PrevTop 16 PrevHeight) NOFRAME
+//      NONUSABLE
 
 MENU ID InvFormMenu
 BEGIN
@@ -241,6 +298,7 @@ USABLE
 MODAL
 BEGIN
  TITLE "PaleoHack can't run"
+ LABEL "Need to install PaleoHackDB.pdb" AUTOID AT (2 20)
 END
 
 FORM ID SenseForm AT (0 0 160 160)
@@ -298,6 +356,15 @@ BEGIN
 	BUTTON "Yes" "No"
 END
 
+ALERT ID LongShortP
+CONFIRMATION
+DEFAULTBUTTON 1
+BEGIN
+	TITLE "Original Help Files"
+	MESSAGE "Long or short help?  (Contents sold by weight not by volume.  Some setting may occur.)"
+	BUTTON "Long" "Short"
+END
+
 
 
 STRING LicenseStr "Hack 1.0.3 is © 1985 Andries Brouwer, Stichting "\
@@ -305,18 +372,143 @@ STRING LicenseStr "Hack 1.0.3 is © 1985 Andries Brouwer, Stichting "\
                   "PaleoHack v 0.01 is "\
                   "© 2001 Andries Brouwer, Stichting "\
                   "Mathematich Centrum, Bridget Spitznagel.\n"\
+                  "This game is freeware.  Source is available under the\n"\
                   "Hack License:\n"\
                   "Unchanged source and source changed to adapt it to "\
                   "a changing environment (operating system, libraries, "\
-                  "compiler, etc) may be freely distributed.\n"\
-                  "This means:"\
-		  "Porting changes may be made to Hack, but not gameplay "\
-                  "changes."
+                  "compiler, etc) may be freely distributed."
 
-STRING CreditStr "Hack has been around since 1985.(?)  "\
+STRING CreditStr "Hack has been around since 1985.  "\
 		"The original version of Hack was written by Jay Fenlason "\
 		"with help from Kenny Woodland, Mike Thome, and Jon Payne.  "\
 		"Andries Brouwer did a near-total rewrite, culminating in "\
-		"version 1.0.3 (for UNIX), of which PaleoHack is a clone.  "\
-		"(Hack 1.0.3 was then ported, modified, ported, merged, "\
-		"expanded, rewritten, debugged, and became... Nethack.)"
+		"version 1.0.3.  (After that, Hack turned into NetHack.)"\
+		"PaleoHack is a port of Hack 1.0.3."
+
+STRING Help1Str "Welcome to HACK! ( description of version 1.0.3 )\n"\
+"Hack is a Dungeons and Dragons like game where you (the adventurer) "\
+"descend into the depths of the dungeon in search of the Amulet of Yendor "\
+"(reputed to be hidden on the twentieth level).  You are accompanied by a "\
+"little dog that can help you in many ways and can be trained to do all "\
+"sorts of things. On the way you will find useful (or useless) items, (quite "\
+"possibly with magic properties) and assorted monsters.  You attack a monster "\
+"by trying to move into the space a monster is in (but often it is much "\
+"wiser to leave it alone).\n"\
+"Unlike most adventure games, which give you a verbal description of "\
+"your location, hack gives you a visual image of the dungeon level you are on.\n"\
+"Hack uses the following symbols:\n"\
+"   A to Z and a to z:  monsters.  You can find out what a letter "\
+"represents by saying \"/ (letter)\", as in \"/A\", which will tell you that 'A' "\
+"is a giant ant.\n"\
+"   - and |  These form the walls of a room (or maze).\n"\
+"   .  this is the floor of a room.\n"\
+"   #  this is a corridor.\n"\
+"   >  this is the staircase to the next level.\n"\
+"   <  the staircase to the previous level.\n"\
+"   `  A large boulder.\n"\
+"   @  You (usually).\n"\
+"   ^  A trap.\n"\
+"   )  A weapon of some sort.\n"\
+"   (  Some other useful object (key, rope, dynamite, camera, ...)\n"\
+"   [  A suit of armor.\n"\
+"   %  A piece of food (not necessarily healthy ...).\n"\
+"   /  A wand.\n"\
+"   =  A ring.\n"\
+"   ?  A scroll.\n"\
+"   !  A magic potion.\n"\
+"   $  A pile or pot of gold.\n"\
+"Commands:\n"\
+"   Hack knows the following commands:\n"\
+"   <       up: go up the staircase (if you are standing on it).\n"\
+"   >       down: go down (just like up).\n"\
+"   kjhlyubn - go one step in the direction indicated. k: north (i.e., to the top of the screen), j: south, h: west, l: east, y: ne, u: nw, b: se, n: sw.\n"\
+"   KJHLYUBN - Go in that direction until you hit a wall or run into something.\n"\
+"   m       (followed by one of kjhlyubn): move without picking up any objects.\n"\
+"   M       (followed by one of KJHLYUBN): Move far, no pickup.\n"\
+"   f       (followed by one of kjhlyubn): move until something interesting is found.\n"\
+"   F       (followed by one of KJHLYUBN): as previous, but forking of corridors is not considered interesting.\n"\
+"   i       print your inventory.\n"\
+"   s       search for secret doors and traps around you.\n"\
+"   ^       ask for the type of a trap you found earlier.\n"\
+"   )       ask for current wielded weapon.\n"\
+"   [       ask for current armor.\n"\
+"   =       ask for current rings.\n"\
+"   $       count how many gold pieces you are carrying.\n"\
+"   .       rest, do nothing.\n"\
+"   ,       pick up some things.\n"\
+"   :       look at what is here.\n"\
+"   ^T      teleport.\n"\
+"   ^R      redraw the screen.\n"\
+"   ^P      repeat last messages\n"\
+"   /       (followed by any symbol): tell what this symbol represents.\n"\
+"   \\       tell what has been discovered.\n"\
+"   e       eat food.\n"\
+"   w       wield weapon. w- means: wield nothing, use bare hands.\n"\
+"   q       drink (quaff) a potion.\n"\
+"   r       read a scroll.\n"\
+"   T       Takeoff armor.\n"\
+"   R       Remove Ring.\n"\
+"   W       Wear armor.\n"\
+"   P       Put on a ring.\n"\
+"   z       zap a wand.\n"\
+"   t       throw an object or shoot an arrow.\n"\
+"   p       pay your shopping bill.\n"\
+"   d       drop something. d7a: drop seven items of object a.\n"\
+"   D       Drop several things.\n"\
+"   a       use, apply - Generic command for using a key to lock or unlock a door, using a camera, using a rope, etc.\n"\
+"   c       call: name a certain object or class of objects.\n"\
+"   C       Call: Name an individual monster.\n"\
+"   E       Engrave: Write a message in the dust on the floor.\n"\
+"You can put a number before a command to repeat it that many times, "\
+"as in \"20s\" or \"40.\".\n"\
+"Some information is displayed on the bottom line. "\
+"You see on what dungeon level you are, how many hit points you have "\
+"now (and will have when fully recovered), what your armor class is "\
+"(the lower the better), your strength, experience level and the "\
+"state of your stomach.\n"\
+"Have Fun, and Good Hacking!"
+
+STRING Help2Str "y  k  u    MOVE COMMANDS:\n"\
+"  \\ | /      hykulnjb: single move\n"\
+"h-+- l     in specified direction\n"\
+"  / | \\      HYKULNJB: repeated move\n"\
+" b  j  n     in specified direction until \n"\
+"                stopped (by e.g. a wall)\n"\
+"f<dir>: move in direction <dir> "\
+"until something interesting is seen\n"\
+"m<dir>: move without picking up objects\n"\
+"You can also move by tapping the screen, "\
+"or by using hardware buttons.\n"\
+"META COMMANDS:\n"\
+"?       help      print information\n"\
+"/       whatis  give name (and sometimes more info) of specified monster\n"\
+"\\       known   print list of what's been discovered\n"\
+"GAME COMMANDS:\n"\
+"^T    teleport     teleport\n"\
+"a       apply, use  use something (a key, camera, etc.)\n"\
+"c       call      give a name to a class of objects\n"\
+"d       drop    drop an object. d7a: drop seven items of object a.\n"\
+"e       eat      eat something\n"\
+"i       invent  list the inventory (all objects you are carrying)\n"\
+"p       pay     pay your bill\n"\
+"q       drink   quaff a potion\n"\
+"r       read    read a scroll\n"\
+"s       search  search for secret doors, hidden traps and monsters\n"\
+"t       throw   throw or shoot a weapon\n"\
+"w       wield   wield a weapon  (w-  wield nothing)\n"\
+"z       zap       zap a wand\n"\
+"C       name    name an individual monster (e.g., baptize your dog)\n"\
+"D       Drop    drop several things\n"\
+"E       Engrave write a message in the dust on the floor  (E-  use fingers)\n"\
+"P       wear      put on a ring\n"\
+"R       remove  remove a ring\n"\
+"T       remove  take off some armor\n"\
+"W       wear       put on some armor\n"\
+"<       up          go up the stairs\n"\
+">       down     go down the stairs\n"\
+"^       trap_id identify a previously found trap\n"\
+"),[,=                ask for current weapon, armor, rings, respectively\n"\
+"$       gold    count your gold\n"\
+".         rest    wait a moment\n"\
+",         pickup  pick up all you can carry\n"\
+":         look    look at what is here"

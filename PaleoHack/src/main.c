@@ -18,6 +18,7 @@
 DmOpenRef phDB = NULL;
 DmOpenRef phSaveDB = NULL;
 DmOpenRef phBonesDB = NULL;
+DmOpenRef phScoreDB = NULL;
 
 Boolean Version_GE_OS35 = false; // (is OS version >= 3.5)
 Boolean death = false;
@@ -167,8 +168,11 @@ static void regen()
     you.uhp++;
   }
 }
+Char *nomovemsg = NULL;
+void (*afternmv)();
 void tick()
 {
+  if (you.dead) return;
   // This should make one turn pass.  Right now it is a dummy.
   set_track(); // Hey!  In init, after we do moonphase, also need initrack()!
   if ((moves % 2 == 0) || (!(Fast & ~INTRINSIC) && (!Fast || rund(3)))) {
@@ -194,16 +198,16 @@ void tick()
   /////////////////////////////////////////////////////
   // Above are the things that happen iff "flags.move".
   /////////////////////////////////////////////////////
+  /*
   if (multi < 0) {
     if (!++multi) {      // XXXX I'm not ready for afternmv yet... commented:
-      /*
       message(nomovemsg ? nomovemsg : "You can move again.");
       nomovemsg = NULL;
-      // if (afternmv) (*afternmv)(); // unfaint(), Meatdone(), stealarm().
+      if (afternmv) (*afternmv)(); // unfaint(), Meatdone(), stealarm().
       afternmv = NULL;
-      */
     }
   }
+  */
   find_ac();
   if (!flags.mv || Blind) {
     seeobjs(); // really should be called decay_corpses
@@ -219,12 +223,29 @@ void tick()
 }
 void tock()
 {
+  if (you.dead) return;
   show_messages();
-  if (flags.botl) {
-    print_stats(0);
-    flags.botl = BOTL_NONE;
-  }
+  //  if (flags.botl) {
+  print_stats(0);
+  flags.botl = BOTL_NONE;
+  //  }
   refresh();
+}
+
+// Caller needs to avoid taking a turn after we return..........
+void spin_multi(Char *msg)
+{
+  if (multi < 0) {
+    do {
+      tick();
+      if (you.dead) { multi = 0; return; }
+    } while (++multi < 0);
+    if (!msg)
+      message("You can move again.");
+    else if (msg[0])
+      message(msg);
+    took_time = false; // xxxx
+  }
 }
 
 extern Boolean draw_directional_p;
@@ -232,7 +253,10 @@ extern Boolean undraw_directional_p;
 
 void end_turn_start_turn()
 {
+  if (you.dead) return;
   if (undraw_directional_p) undraw_directional();
+
+  if (multi < 0) spin_multi(NULL); // XXX
   if (took_time) {
     bump_state();
     flags.nopick = 0;
@@ -361,6 +385,13 @@ Boolean Main_Form_HandleEvent(EventPtr e)
 	msglog_mode = SHOW_MSGLOG;
 	FrmPopupForm(MsgLogForm);
 	return true;
+      case menu_mainHelp:
+	if (0 == FrmAlert(LongShortP))
+	  msglog_mode = SHOW_LHELP;
+	else
+	  msglog_mode = SHOW_SHELP;
+	FrmPopupForm(MsgLogForm);
+	return true;
       case menu_cmd_i:     FrmPopupForm(InvForm);     return true;
       case menu_mainQuit:
 	// need:
@@ -379,6 +410,7 @@ Boolean Main_Form_HandleEvent(EventPtr e)
 	  extern Short engrave_or_what;
 	  engrave_or_what = GET_WISH;
 	  FrmPopupForm(EngraveForm);
+	  flags.beginner = false; // xxx for testing
 	  return true;
 	}
       case menu_mainRedraw:
@@ -401,6 +433,16 @@ Boolean Main_Form_HandleEvent(EventPtr e)
 	show_messages();
 	return true;
 	*/
+      default:
+	{
+	  Short cmd;
+	  // MAGIC & MORE MAGIC..
+	  cmd = e->data.menu.itemID - MAGIC_MENU_NUMBER;
+	  if (cmd > 0 && cmd < 128)
+	    handled = do_command((Char) cmd);
+	}
+	curr_state.count = /*command_count = */0;
+	break;
       }
       handled = true;
       break;
@@ -503,10 +545,12 @@ static Boolean do_command(Char com_val)
     took_time = dopay(); // pay shopkeeper; takes no time if none is present.
     break;
   case '$':
-    // count your money
-    // call "doprgold", which will take extra time if >500!
+    took_time = doprgold(); // count your money.  can take multiple turns..
     break;
-  case 'T': break; // take off armor.. I don't remember if you get a choice.
+  case 'T':
+    if (getobj_init("[", "take off", ACT_AOFF))
+      FrmPopupForm(InvActionForm);
+    break;
   case ')':
     message("list currently wielded weapon...");
     took_time = false;
@@ -520,8 +564,7 @@ static Boolean do_command(Char com_val)
     took_time = false;
     break;
   case ':':
-    // list the things that you are standing on!
-    took_time = false;
+    took_time = do_look(); // list the things you are standing on.  needs work.
     break;
   case '/':
     // "whatsit" command.. puts main event handler into MODE_GETCELL,
@@ -560,15 +603,12 @@ static Boolean do_command(Char com_val)
     // allows you to move cursor to a monster to give it a name!
     // gar... not sure how to do that... will be like "tap to recall"
     // in moria: basically I need a MODE_NAMEMON for main event handler.
-  case '^': // identify an adjacent trap in some direction,
-    took_time = false;
-    curr_state.cmd = '^';
-    curr_state.item = NULL;
-    curr_state.mode = MODE_DIRECTIONAL;
-    draw_directional();
-    // do not 'tick'.
-    // also, call "do_id_trap" when you're done.
-    break;
+  case '\024': // ^T "teleport".  octal 24, decimal 20.
+  case 'Z': /* I'm not sure that ^T will work, even with a keyboard.
+	       ^T is ok as a menu item but keypress doesn't work in POSE.
+	       So I may have to add Z as an alternative for graffitios.  */
+    took_time = dotele();
+    return true;
   default:
     handled = false;
     took_time = false;
@@ -594,6 +634,13 @@ static Boolean do_inv_command(Char com_val)
   // in an inventory-form event handler, call it explicitly here.
   switch(com_val) {
     // Take a long hard look at getobj, for the filtering.
+  case '?':
+    if (0 == FrmAlert(LongShortP))
+      msglog_mode = SHOW_LHELP;
+    else
+      msglog_mode = SHOW_SHELP;
+    FrmPopupForm(MsgLogForm);
+    break;
   case 'a':
     if (getobj_init("(", "use or apply", ACT_APPLY))
       FrmPopupForm(InvActionForm);
@@ -680,6 +727,22 @@ static Boolean do_inv_command(Char com_val)
   case '\015': // ^M "map".  octal 15, decimal 13.
     FrmPopupForm(MapForm);
     return true;
+  case '^': // identify an adjacent trap in some direction,
+    curr_state.cmd = '^';
+    curr_state.item = NULL;
+    curr_state.mode = MODE_DIRECTIONAL;
+    draw_directional();
+    // do not 'tick'.
+    // also, call "do_id_trap" when you're done.
+    break;
+  case '@':  // XXXX DEBUGGING TAKE THIS OUT.
+    {
+      extern Short engrave_or_what;
+      engrave_or_what = GET_WISH;
+      FrmPopupForm(EngraveForm);
+      flags.beginner = false; // xxx for testing
+      return true;
+    }
   default:
     handled = false;
     took_time = false;
@@ -730,6 +793,7 @@ static Boolean do_dir_command()
     took_time = false;
     if (you.dx || you.dy || you.dz) {
       use_camera(curr_state.item);
+      took_time = true;
     } else {
       multi = 0; // flags.move = 0 also?
       return false;
@@ -744,13 +808,9 @@ static Boolean do_dir_command()
     }
     break;
   case '^': // identify trap, adjacent in given direction.  If any.
+    took_time = false;// id trap should never take time!
     do_id_trap();
-    //    message("(identify a visible trap)");
-    //    took_time = false;
-    // Can you id a trap you're standing on?
-    // Does it take time if there is/isn't a trap?
-    // Why does it return a boolean anyway?
-    // Consult original source code.
+    // Can you id a trap you're standing on?  Yes if you hit '>'.
     break;
   case 't': // Throw
     took_time = false;
@@ -817,13 +877,19 @@ static Boolean do_xy_command(Short x, Short y)
 
 /*****************************************************************************/
 
-const Char hwb_commands[HWB_last+2] = "\0kjlh\015stiagF@";
+const Char hwb_commands[HWB_last+2] = "\0kjlh\015stiag!#";//last2: font, shift.
 static Boolean buttonsHandleEvent(EventPtr e)
 {
   Boolean handled = false, valid = false, capslock_on, numlock_on, autoshifted;
   Word curfrm;
   Short btn, dispatch_type = 0, tmp_shift;
   Char command;
+
+  // block app-switching in msglogform
+  if ( (e->data.keyDown.chr == launchChr ||
+	e->data.keyDown.chr == hardPowerChr) &&
+       FrmGetActiveFormID() == MsgLogForm)
+    return true;
 
   if ( ((e->data.keyDown.chr < hard1Chr) || (e->data.keyDown.chr > hard4Chr))
        && (e->data.keyDown.chr != calcChr)
@@ -859,7 +925,8 @@ static Boolean buttonsHandleEvent(EventPtr e)
 
   if (curfrm != MainForm) {
     // IF the key is bound, return TRUE to MASK it, unless it is up/down.
-    return ( dispatch_type != HWB_NOOP &&
+    return ( (dispatch_type != HWB_NOOP ||
+	      curfrm == MsgLogForm) &&
 	     e->data.keyDown.chr != pageUpChr &&
 	     e->data.keyDown.chr != pageDownChr );
   }
@@ -958,6 +1025,15 @@ static Boolean OpenDatabase(void)
     if (0 == (dbID = DmFindDatabase(0, phBonesDBName))) return 1;
   }
   if (0 == (phBonesDB = DmOpenDatabase(0, dbID, dmModeReadWrite))) return 1;
+
+  // We can run if we cannot find the phScoreDB.  Just create it.
+  if (0 == (dbID = DmFindDatabase(0, phScoreDBName))) {
+    if (DmCreateDatabase(0, phScoreDBName, phAppID, phScoreDBType, false))
+      return 1;
+    created = true;
+    if (0 == (dbID = DmFindDatabase(0, phScoreDBName))) return 1;
+  }
+  if (0 == (phScoreDB = DmOpenDatabase(0, dbID, dmModeReadWrite))) return 1;
 
   return 0;
 }

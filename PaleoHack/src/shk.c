@@ -304,6 +304,7 @@ static void pay(Long tmp, monst_t *shkp)
   }
 }
 
+extern Short multi; // living in movesee.c right now..
 // What does the return value indicate??
 Boolean dopay()
 {
@@ -312,7 +313,7 @@ Boolean dopay()
   monst_t *shkp;
   Short pass, tmp;
 
-  //   multi = 0;// XXXXX
+  multi = 0;// XXXXX
   inshop();
   for (shkp = fmon ; shkp ; shkp = shkp->nmon)
     if ((shkp->bitflags & M_IS_SHOPKEEPER) && dist(shkp->mx,shkp->my) < 3)

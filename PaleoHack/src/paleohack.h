@@ -14,13 +14,16 @@
 #define phDBType  'Data'
 #define phSaveDBType  'Data'
 #define phBonesDBType  'Data'
+#define phScoreDBType  'Data'
 #define phAppID   'PlHk'
 extern DmOpenRef       phDB;
 extern DmOpenRef       phSaveDB;
 extern DmOpenRef       phBonesDB;
+extern DmOpenRef       phScoreDB;
 #define phDBName "PaleoHackDB"
 #define phSaveDBName "PaleoHackSaveDB"
 #define phBonesDBName "PaleoHackBonesDB"
+#define phScoreDBName "PaleoHackScoreDB"
 #define phColorDBVersion 0x01
 #define phSaveDBVersion 0x01
 #define phBonesDBVersion 0x01

@@ -20,8 +20,9 @@ void clone_for_call(obj_t *otmp) SEC_4;
 void engrave_draw() SEC_4;
 void tick();
 void tock();
+void spin_multi(Char *msg);
 void writePrefs();
-
+void sense_init_screen() SEC_5;
 
 void greet_player();
 void moon_player() SEC_1;
@@ -52,6 +53,7 @@ void get_default_username(Char *buf, Short max_len);
 Char *my_rindex(Char *s, Char c);
 void wait_for_event();
 Short WinDrawChars_ctr(Char *buf, Short len, Short x_mid, Short y);
+Short WinDrawChars_rj(Char *buf, Short len, Short x_right, Short y);
 
 // time.c
 //
@@ -67,6 +69,7 @@ Boolean midnight() SEC_1;
 void where_in_dungeon(Short scr_x, Short scr_y, Short *dun_x, Short *dun_y);
 void print(Short x, Short y, Short ch); // Equivalent of "atl"
 void on_scr(Short x, Short y); // results aren't being used since nscr !exists
+Boolean fits_on_screen(Short x, Short y);
 void check_rogue_position(Boolean centered);
 void refresh();
 void nscr(); // get rid of this if poss? or make it and refresh call a backend
@@ -105,7 +108,7 @@ Boolean message_clear(Boolean really);
 void preempt_messages();
 void show_all_messages();
 void show_messages();
-void show_a_more(Short lines_used);
+void show_a_more(Short lines_used, Boolean invert);
 void alloc_message_log();
 void clear_message_log();
 void print_stats(UInt which_stats);
@@ -164,7 +167,9 @@ Short ggetobj_end(Char *olets, Boolean drop_not_identify,
 Short askchain(obj_t *objchn, Char *olets, Char *prompt, Boolean allflag, Short (*fn)(), Boolean (*ckfn)(), Short max); // XXX danger will robinson
 void prinv(obj_t *obj);
 void stackobj(obj_t *obj) SEC_1;
+Boolean do_look() SEC_5;
 obj_t * splitobj(obj_t *obj, Short num) SEC_1; //was in "do.c"
+Boolean doprgold() SEC_5;
 // make_mon.c
 monst_t * makemon(permonst_t *ptr, Short x, Short y) SEC_2;
 PointType enexto(Int8 xx, Int8 yy) SEC_2;
@@ -248,10 +253,10 @@ Boolean getbones() SEC_5; // xxx debug
 // end.c
 void unsave() SEC_5;
 void done_in_by(monst_t *mtmp) SEC_5;
-void done(Char *st1) SEC_5;
+void done(Char *st1);// SEC_5;
 Short done_postRIP_size() SEC_5;
 void done_postRIP(Char *buf) SEC_5;
-void draw_topten() SEC_5;
+void init_topten() SEC_5;
 // movesee.c was hack.c
 void unsee() SEC_4;
 void nomul(Short nval) SEC_1;
@@ -284,7 +289,7 @@ void heal_legs() SEC_2;
 void setuwep(struct obj *obj) SEC_1; // wrapper for setworn!
 Boolean do_wield(obj_t *wep) SEC_1;
 void corrode_weapon() SEC_1;
-Boolean chwepon(obj_t *otmp, Short amount) SEC_1;
+tri_val_t chwepon(obj_t *otmp, Short amount) SEC_1;
 // worn.c
 void setworn(obj_t *obj, Long mask) SEC_1;
 void setnotworn(obj_t *obj) SEC_1;
@@ -337,15 +342,15 @@ void morehungry(Short num) SEC_2;
 void lesshungry(Short num) SEC_2;               // just in eat.c and potion.c
 Boolean poisonous(obj_t *otmp) SEC_2;           // just in eat.c and dog.c
 // potion.c
-Boolean do_drink(obj_t *otmp) SEC_2; // still missing a line at end for p_tofn
-void finish_do_drink(obj_t *otmp, Boolean nothing, Boolean unkn) SEC_2;
-void strange_feeling(obj_t *obj, Char *txt) SEC_2; // needs do_call + uname...
+tri_val_t do_drink(obj_t *otmp) SEC_2; // still missing a line at end for p_tofn xxxx
+tri_val_t finish_do_drink(obj_t *otmp, Boolean nothing, Boolean unkn) SEC_2;
+Boolean strange_feeling(obj_t *obj, Char *txt) SEC_2;
 void potionhit(monst_t *mon, obj_t *obj) SEC_1;
 void potionbreathe(obj_t *obj) SEC_1;
 Boolean do_dip(obj_t *potion, obj_t *obj) SEC_1;
 // read.c
-Boolean do_read(obj_t *scroll) SEC_2;
-void finish_do_scroll(obj_t *scroll, Boolean known, Boolean confused) SEC_2;
+tri_val_t do_read(obj_t *scroll) SEC_2;
+tri_val_t finish_do_read(obj_t *scroll, Boolean known, Boolean confused) SEC_2;
 void do_genocide(Char *buf) SEC_4;
 // zap.c
 Boolean do_zap(obj_t *obj) SEC_3;
@@ -361,7 +366,7 @@ void fracture_rock(obj_t *obj) SEC_3;
 // apply.c
 Boolean do_apply(obj_t *obj) SEC_1;
 void use_camera(obj_t *obj) SEC_1;
-Boolean put_in_ice_box(obj_t *obj) SEC_2; // was "in_ice_box"
+Boolean put_in_ice_box(obj_t *obj) SEC_5; // was "in_ice_box"
 Short holetime() SEC_2;
 void dighole() SEC_2;
 Boolean use_pick_axe(obj_t *obj) SEC_1;

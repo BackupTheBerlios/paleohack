@@ -369,6 +369,7 @@ void tele_finish(Short x, Short y, Boolean controlled)
   teleds(nux, nuy);
 }
 
+void move_visible_window(Short left_x, Short top_y, Boolean center);//display.c
 static void teleds(Short nux, Short nuy)
 {
   if (Punished) unplacebc();
@@ -381,8 +382,10 @@ static void teleds(Short nux, Short nuy)
   if (Punished) placebc(true);
   if (you.uswallow) {
     you.uswallowedtime = you.uswallow = 0;
-    refresh(); //docrt();
+    //    refresh(); //docrt();
   }
+  move_visible_window(you.ux, you.uy, true);
+  refresh();
   nomul(0);
   if (get_cell_type(floor_info[nux][nuy]) == POOL && !Levitation)
     drown();

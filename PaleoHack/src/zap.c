@@ -70,6 +70,7 @@ Boolean do_zap_helper()
 {
   obj_t *obj = curr_state.item;
   Short zx,zy;
+  Boolean done = true;
 
   if (!obj) return false;// should not happen!
 
@@ -91,7 +92,7 @@ Boolean do_zap_helper()
       litroom(true);
       break;
     case WAN_SECRET_DOOR_DETECTION:
-      if (!findit()) return true; // we used a turn but didn't i.d. the wand
+      if (!findit()) return done; // we used a turn but didn't i.d. the wand
       break;
     case WAN_CREATE_MONSTER:
       {
@@ -102,16 +103,15 @@ Boolean do_zap_helper()
       }
       break;
     case WAN_WISHING:
-      {
-	if (you.uluck + rund(5) < 0) {
-	  message("Unfortunately, nothing happens.");
-	  break;
-	}
-	engrave_or_what = GET_WISH;
-	FrmPopupForm(EngraveForm);
-	// xxx Hey, do I need to do something about taking a turn here?
+      if (you.uluck + rund(5) < 0) {
+	done = true;
+	message("Unfortunately, nothing happens.");
 	break;
       }
+      done = false;
+      engrave_or_what = GET_WISH;
+      FrmPopupForm(EngraveForm); // xxx engraveform needs to take a turn...
+      break;
     case WAN_DIGGING:
       /* Original effect (approximately):
        * from CORR: dig until we pierce a wall
@@ -181,6 +181,7 @@ Boolean do_zap_helper()
 	  zy += you.dy;
 	}
 	mnewsym(zx,zy);	/* not always necessary */
+	prl(you.ux+you.dx, you.uy+you.dy); 
 	Tmp_at_cleanup();
 	break;
       }
@@ -194,7 +195,7 @@ Boolean do_zap_helper()
       more_experienced(0,10);
     }
   }
-  return true;
+  return done;
 }
 
 
@@ -680,8 +681,8 @@ static Boolean revive(obj_t *obj)
     /* do not (yet) revive shopkeepers */
     /* Note: this might conceivably produce two monsters
        at the same position - strange, but harmless */
+    delobj(obj); // moved one line ahead of mkmon_at, in 1980s bugfix
     mtmp = mkmon_at(CORPSE_I_TO_C(obj->otype), obj->ox, obj->oy);
-    delobj(obj);
   }
   return (mtmp != NULL);		/* TRUE if some monster was created */
 }
@@ -729,12 +730,13 @@ static void burn_scrolls()
       useup(obj);
     }
   }
-  if (cnt > 1) {
-    message("Your scrolls catch fire!");
-    losehp(cnt, "burning scrolls");
-  } else if (cnt) {
-    message("Your scroll catches fire!");
-    losehp(1, "burning scroll");
+  if (cnt) {
+    message((cnt>1) ? "Your scrolls catch fire!": "Your scroll catches fire!");
+    // Fire resistance clause added as bugfix from 1980s
+    if (Fire_resistance)
+      message("You are uninjured!");
+    else
+      losehp(cnt, (cnt > 1) ? "burning scrolls" : "burning scroll");
   }
 }
 

@@ -4,6 +4,7 @@
  * Hack 1.0.3 is (C) 1985 Stichting Mathematisch Centrum, Amsterdam  *
  *********************************************************************/
 #include "paleohack.h"
+#include "paleohackRsc.h" // to LeaveForm when stoned.
 
 void setuwep(struct obj *obj)
 {
@@ -14,7 +15,8 @@ void setuwep(struct obj *obj)
 // note: Some of the messages are shortened to fit in one line.
 Boolean do_wield(obj_t *wep)
 {
-  if (wep == uwep) wep = NULL; // this is my little ACT_PUTUP fix.
+  if (wep == uwep && FrmGetActiveFormID() == InvForm)
+    wep = NULL; // this is my little ACT_PUTUP kludge.
 
   if (wep == NULL) {
     if (uwep == 0)
@@ -36,6 +38,15 @@ Boolean do_wield(obj_t *wep)
 	      aobjnam(uwep, "are"));
     message(ScratchBuffer);    
   }
+  // The cockatrice case is a bugfix from the 1980s.
+  else if (!uarmg && wep->otype == DEAD_COCKATRICE) {
+    if (FrmGetActiveFormID() != MainForm) LeaveForm(); // XXXX ?????
+    message("You wield the dead cockatrice in your bare hands.");
+    message("You turn to stone ...");
+    killer="dead cockatrice";
+    done("died");
+    return true;
+  } // end of 80s bugfix.
   else if (uarms && wep->otype == TWO_HANDED_SWORD)
     //pline("You cannot wield a two-handed sword and wear a shield.");
     message("First you must take off your shield.");
@@ -72,26 +83,27 @@ void corrode_weapon()
 }
 
 
-Boolean chwepon(obj_t *otmp, Short amount)
+tri_val_t chwepon(obj_t *otmp, Short amount)
 {
   if (!uwep || uwep->olet != WEAPON_SYM) {
-    strange_feeling(otmp,
-		    (amount > 0) ? "Your hands twitch."
-		    : "Your hands itch.");
-    return false;
+    if (strange_feeling(otmp,
+			(amount > 0) ? "Your hands twitch."
+			: "Your hands itch."))
+      return GO_ON;
+    else return NO_OP;
   }
 
   if (uwep->otype == WORM_TOOTH && amount > 0) {
     uwep->otype = CRYSKNIFE;
     message("Your weapon seems sharper now.");
     uwep->bitflags &= ~O_IS_CURSED; //  uwep->cursed = 0;
-    return true;
+    return DONE;
   }
 
   if (uwep->otype == CRYSKNIFE && amount < 0) {
     uwep->otype = WORM_TOOTH;
     message("Your weapon looks duller now.");
-    return true;
+    return DONE;
   }
 
   /* there is a (soft) upper limit to uwep->spe */
@@ -104,7 +116,7 @@ Boolean chwepon(obj_t *otmp, Short amount)
     /* let all of them disappear. note: 'uwep->quan = 1' is nogood if unpaid */
     while (uwep)
       useup(uwep);
-    return true;
+    return DONE;
   }
   if (!rund(6)) amount *= 2;
   StrPrintF(ScratchBuffer, "Your %s %s for a %s.", // "NOUN+VERB COLOR TIME."
@@ -114,5 +126,5 @@ Boolean chwepon(obj_t *otmp, Short amount)
   message(ScratchBuffer);
   uwep->spe += amount;
   if (amount > 0) uwep->bitflags &= ~O_IS_CURSED; //  uwep->cursed = 0;
-  return true;
+  return DONE;
 }

@@ -13,6 +13,7 @@ extern Int8 engrave_type;
 
 static void init_engrave_fld(FormPtr frm) SEC_5;
 static void commit_engrave_fld(FormPtr frm) SEC_5;
+static void engr_tick(Boolean not_cancelled) SEC_5;
 static void do_wish(Char *buf) SEC_5;
 
 #define ROW_1 15
@@ -27,6 +28,7 @@ Boolean Engrave_Form_HandleEvent(EventPtr e)
 {
   Boolean handled = false;
   FormPtr frm;
+  FieldPtr fld;
   Char chr;
 
   switch (e->eType) {
@@ -64,10 +66,17 @@ Boolean Engrave_Form_HandleEvent(EventPtr e)
     switch(e->data.ctlSelect.controlID) {
     case btn_sb_ok:
       commit_engrave_fld(frm); // <-- includes LeaveForm
+      engr_tick(true);
       handled = true;
       break;
     case btn_sb_cancel:
+      // hmmmm don't I need to get rid of the field, too????? xxxxx
+  fld = FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, field_sb));
+  FldReleaseFocus(fld);
+  FldSetSelection(fld, 0, 0);
+  FldFreeMemory(fld);
       LeaveForm();
+      engr_tick(false);
       handled = true;
       break;
     }
@@ -87,7 +96,7 @@ void clone_for_call(obj_t *otmp)
   do_name(&tmp_call_obj, NULL);//tmp_call_obj->onamelth = 0; Undo name (if any)
   curr_state.item = &tmp_call_obj;
   engrave_type = 0;
-  engrave_or_what = ACT_CALL;
+  engrave_or_what = ACT_CALL_2;
 }
 
 void level_tele_start()
@@ -120,7 +129,7 @@ void engrave_draw()
     StrPrintF(ScratchBuffer, "What do you want to name %s?",
 	      doname(curr_state.item));
     break;
-  case ACT_CALL:
+  case ACT_CALL: case ACT_CALL_2:
     str = xname(curr_state.item);
     StrPrintF(ScratchBuffer, "Call %s %s: ",
 	      is_vowel(str[0]) ? "an" : "a", str);
@@ -179,7 +188,7 @@ static void init_engrave_fld(FormPtr frm)
   case ACT_NAME:
     StrPrintF(ScratchBuffer, "Name");
     break;
-  case ACT_CALL:
+  case ACT_CALL: case ACT_CALL_2:
     StrPrintF(ScratchBuffer, "Call");
     break;
   case ACT_CHRISTEN:
@@ -205,6 +214,7 @@ static void init_engrave_fld(FormPtr frm)
 }
 
 Boolean monstersym(Char ch) SEC_4; // read.c
+extern Boolean took_time;
 static void commit_engrave_fld(FormPtr frm)
 {
   FieldPtr fld;
@@ -233,7 +243,7 @@ static void commit_engrave_fld(FormPtr frm)
   case ACT_NAME:
     do_name(curr_state.item, buf);
     break;
-  case ACT_CALL:
+  case ACT_CALL: case ACT_CALL_2:
     do_call(curr_state.item, buf);
     break;
   case ACT_CHRISTEN:
@@ -261,6 +271,40 @@ static void commit_engrave_fld(FormPtr frm)
     message("that was a bug");
     break;
   }
+}
+
+void end_turn_start_turn(); // in main.c
+static void engr_tick(Boolean not_cancelled)
+{
+  took_time = false;
+  switch (engrave_or_what) {
+  case ACT_ENGRAVE:
+    took_time = true;
+    break;
+  case ACT_NAME:
+    break;
+  case ACT_CALL:
+    break;
+  case ACT_CALL_2: // call a 'used' potion or scroll!
+    took_time = true;
+    break;
+  case ACT_CHRISTEN:
+    took_time = not_cancelled;
+    break;
+  case GET_WISH:
+    break;
+  case GET_GENOCIDE:
+    took_time = true;
+    break;
+  case GET_VAULT:
+    break;
+  case GET_LTELE:
+    took_time = true; // ??? need to test this.
+    break;
+  default:
+    break;
+  }
+  end_turn_start_turn();
 }
 
 static void do_wish(Char *buf)

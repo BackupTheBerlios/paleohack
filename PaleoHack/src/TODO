@@ -167,38 +167,56 @@ Fixed foo-detection: it displays the message, the stuff, and the "fades" now!
     (WARNING, you CAN get an engraveform after a foo-detection, if
     if you're confused.  at least if it's a scroll you can.
     and I should NOT take a turn if we're popping up the engraveform.)
+Added ':' command to look at what you're standing on
+  It should really pop up a window to print a big string into, but instead it
+  just calls message a bunch of times.
+Added '$' to count your gold.
+Removed gold from the stats display.
+Added number-of-moves to the stats display.  (to help with debugging later.)
+The stats display now consults flags.botl when updating.
+'multi' should sort-of work now.
+Ghost name bug should be fixed now.  Yay.
+Added some bugfixes from the google archive from 1980s.  UNTESTED by me.
+Fixed ':' so that it doesn't put "Things that are here" for ==1 thing.
+Add preempt-msg call so you don't hear The Howling when starting new character.
+  You can still see old messages in messagelog window.  I figure that's ok.
+Added instructions.
+Changed the map from wizard-mode to show-known-only.  Frobbed it.
+Added 2.3 metric buttloads of menus.
+Fixed magic mapping so it WORKS.
+Made potions & scrolls take time properly.  Tested most scrolls/potions.
+  Now I get an error for enchant_weapon and damage_weapon scrolls...
+   its pointer is being set to 0 before the EngraveForm pops up,
+   so I get nastiness and eventually a "call a glorkum ?" window.
+The Identify (and Drop) 'a'ny button should work now.
+Mysteriously, the wand of secret door detection WORKS now.
+The Drop (and Identify) 'u'npaid button should work now.
 
 TO DO:  teleportation interacts poorly with 'more' mode......
-	fix bug: some Scroll msgs (before 'call') get show_message'd TOO much
 	test the vault query (croesus)
 	saving and restoring of WORMS is NOT IMPLEMENTED YET.
 	look at all the inv actions, make sure they take turn/don't, properly.
-	fix anything that uses multi (or is supposed to, anyway)
+	also make sure they print msgs promptly (something wasn't..)
 	game crashed if killed by eel? fix this.
-	game crashed if killed by ghost from bottle? fix this.
 	Need top ten list.
+	Need 'count' (e.g. "99." SHOULD rest for 99 turns).
 	when you're in invform, and the dog moves, it is drawn THERE! eek.
         Add preferences/hardwarebutton forms to configure my_prefs values.
    Bug: It doesn't remember what part of the level I've seen, when
         I exit the app and return to it (and probably ascending/descending),
-        when testing on the IIIc.  Hmmmm... doesn' seem to be a problem now.
-   Bug: I hear the howling of the Cwnfoo AFTER I die + start a new character.
-        (need to 'clear' the message log counter/pointer after death)
-
-   I'm getting errors sometimes (reading an unallocated chunk) when going
-      down stairs... (with a clean slate, a newbie that never saved/restored.)
-   sometimes do_move crashes.. reading from unalocated chunk of
-      memory... basically, when you fall through a trap door, sometime
-      before it draws the next level.  The resulting level has occasional
-      characters that, well, just don't belong.  like % embedded in a
-      wall, or the Empty Rectangle character in a passage.
-   I think I've fixed the problem.
+        when testing on the IIIc.  sometimes.
+     Also, an old '@' is printed in some place you were a few moves back.
+        and the monsters and the little dog are all in old places too.  GAR.
+        This is way screwy.
+        Wonder if it is related to levels being created with cruft in walls.
+   Bug: 'take off' is completely screwy.
+   Bug: null pointer or something when you "float to ground" after levitate.
+        ditto when you die of food poisoning non-immediately ?
 
 
-[foo-detection problem: fixed.]
-Also, when you genocide a monster, it doesn't redraw til next tap, and stuff.
-I expect there are MANY MANY "taking-a-turn is screwy" problems like this.
-Mostly with taking-a-turn being at the wrong time (i.e. before popping up a
-form instead of after) or outright missing (e.g. engrave, foo-detection, etc)
 
-frills I should add:  make "losestr()" beep.
+
+need to make "losestr()" beep.
+
+btw, unix.c has a Y2K bug (in getdate() and a few places in end.c,
+it saves a formerly-6-character date in 'record' file.)

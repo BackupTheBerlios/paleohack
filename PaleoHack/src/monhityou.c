@@ -246,7 +246,9 @@ Boolean mon_hit_you(monst_t *mtmp) // was mhitu
     hit_you(mtmp, rnd(2));
     break;
   case 'R':
-    if (tmp && uarmh && !(uarmh->bitflags & O_IS_RUSTFREE) &&
+    //    if (tmp && uarmh && !(uarmh->bitflags & O_IS_RUSTFREE) &&
+    // Bugfix from 1980s:
+    if (ctmp && uarmh && !(uarmh->bitflags & O_IS_RUSTFREE) &&
        (Short) uarmh->spe >= -1) {
       message("Your helmet rusts!");
       uarmh->spe--;
@@ -264,7 +266,9 @@ Boolean mon_hit_you(monst_t *mtmp) // was mhitu
     }
     break;
   case 's':
-    if (tmp && !rund(8)) {
+    //    if (tmp && !rund(8)) {
+    // Bugfix from 1980s:
+    if (ctmp && !rund(8)) {
       poisoned("scorpion's sting", mon_names + mdat->mname_offset);
     }
     hit_you(mtmp, rnd(8));

@@ -26,6 +26,20 @@ void do_mname(monst_t *mtmp, Char *new_name)
   mtmp->name[len-1] = '\0';
 }
 
+static void do_gname(monst_t *mtmp, Char *new_name) // ghost name
+{
+  Short len;
+  if (!mtmp) return;
+  if (mtmp->extra != NULL) return; // bug if this happens
+  if (!new_name) return; // bug if this happens
+  len = StrLen(new_name) + 1;
+  if (len <= 1) return;
+  if (len > MAX_MNAME) len = MAX_MNAME;
+  mtmp->extra = (Char *) md_malloc(len * sizeof(Char));
+  StrNCopy(mtmp->extra, new_name, len);
+  ((Char *) (mtmp->extra))[len-1] = '\0';
+}
+
 void do_name(obj_t *otmp, Char *new_name)
 {
   Short len;
@@ -94,12 +108,14 @@ static Char * xmonnam(monst_t *mtmp, Short vb)
   switch(mtmp->data->mlet) {
   case ' ':
     {
-      Char *gn = mtmp->name;
-      if (!*gn) {		// might also look in scorefile
+      Char *gn = (Char *) mtmp->extra;
+      if (!gn || !*gn) {		// might also look in scorefile
 	gn = ghostnames[rund( sizeof(ghostnames)/sizeof(Char *) )];
-	if (!rund(2)) StrCopy(mtmp->name, !rund(5) ? plname : gn);
+	if (!rund(2)) { // strange but true.
+	  do_gname(mtmp, (!rund(5) ? plname : gn));
+	}
       }
-      StrPrintF(buf, "%s's ghost", gn);
+      StrPrintF(buf, "%s's ghost", (gn ? gn : "A BUG"));
     }
     break;
   case '@':

@@ -49,7 +49,10 @@ Short hitmm(monst_t *magr, monst_t *mdef) // aggressor, defender
     }
   }
   if (hit) {
-    if (magr->data->mlet == 'c' && !(magr->bitflags & M_IS_CHAMELEON)) {
+    //    if (magr->data->mlet == 'c' && !(magr->bitflags & M_IS_CHAMELEON)) {
+    // Bug fix from 1980s:
+    if (magr->data->mlet == 'c' && mdef->data->mlet != 'c'
+	&& !(magr->bitflags & M_IS_CHAMELEON)) {
       magr->mhpmax += 3;
       if (vis) {
 	StrPrintF(ScratchBuffer, "%s is turned to stone!", Monnam(mdef));
@@ -77,6 +80,7 @@ Short hitmm(monst_t *magr, monst_t *mdef) // aggressor, defender
 	mondied(mdef);
 	hit = 2;
       }
+    if (magr->mhpmax <= 0) magr->mhpmax = 127;  // bugfix from 1908s.
   }
   return(hit);
 }

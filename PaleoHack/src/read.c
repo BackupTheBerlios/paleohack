@@ -15,15 +15,16 @@ extern Short engrave_or_what;
 extern UChar sense_what;
 extern obj_t *sense_by_what;
 
-Boolean do_read(obj_t *scroll)
+tri_val_t do_read(obj_t *scroll)
 {
   Boolean confused = (Confusion != 0);
   Boolean known = false;
+  Boolean b;
 
-  if (!scroll) return false;
+  if (!scroll) return NO_OP;
   if (!(scroll->bitflags & O_IS_DESCKNOWN) && Blind) {
     message("Being blind, you cannot read the formula on the scroll.");
-    return false;
+    return NO_OP;
   }
   if (Blind)
     message("As you pronounce the formula on it, the scroll disappears.");
@@ -43,8 +44,10 @@ Boolean do_read(obj_t *scroll)
       obj_t *otmp = some_armor();
       Char *oname;
       if (!otmp) {
-	strange_feeling(scroll,"Your skin glows then fades.");
-	return true;
+	b = strange_feeling(scroll,"Your skin glows then fades.");
+	// strange_feeling calls useup(scroll) etc, that's why we return now.
+	// it returns true if it popped up the engrave form.
+	return ((b) ? GO_ON : DONE);
       }
       oname = oc_names + objects[otmp->otype].oc_name_offset;
       if (confused) {
@@ -70,8 +73,8 @@ Boolean do_read(obj_t *scroll)
     if (confused) {
       obj_t *otmp = some_armor();
       if (!otmp) {
-	strange_feeling(scroll,"Your bones itch.");
-	return true;
+	b = strange_feeling(scroll,"Your bones itch.");
+	return ((b) ? GO_ON : DONE);
       }
       StrPrintF(ScratchBuffer, "Your %s glows purple for a moment.",
 		oc_names + objects[otmp->otype].oc_name_offset);
@@ -89,9 +92,12 @@ Boolean do_read(obj_t *scroll)
       message("Your gloves vanish!");
       useup(uarmg);
       selftouch("You"); // Checks to see if you're wielding a dead cockatrice.
+    } else if (uarms) { // This case was added as a bugfix in 1980s.
+      message("Your shield crumbles away!");
+      useup(uarms);
     } else {
-      strange_feeling(scroll,"Your skin itches.");
-      return true;
+      b = strange_feeling(scroll,"Your skin itches.");
+      return ((b) ? GO_ON : DONE);
     }
     break;
   case SCR_CONFUSE_MONSTER:
@@ -138,6 +144,7 @@ Boolean do_read(obj_t *scroll)
 	  else          obj->bitflags &= ~O_IS_CURSED;
 	}
       if (Punished && !confused) {
+	// destroy the chain, leave the ball (handy eh)
 	Punished = 0;
 	unlink_obj(uchain); // freeobj
 	unpobj(uchain);
@@ -151,32 +158,45 @@ Boolean do_read(obj_t *scroll)
   case SCR_CREATE_MONSTER:
     {
       Short cnt = 1;
+      Boolean made = false;
 
       if (!rund(73)) cnt += rnd(4);
       if (confused)  cnt += 12;
       while (cnt--)
-	makemon((confused ? PM_ACID_BLOB : NULL), you.ux, you.uy);
+	made = (0!=makemon((confused ? PM_ACID_BLOB : NULL), you.ux, you.uy));
+      if (made)
+	message("You hear a tiny thunderclap.");
       break;
     }
   case SCR_ENCHANT_WEAPON:
     if (uwep && confused) {
-      StrPrintF(ScratchBuffer, "Your %s glows silver for a moment.",
-		oc_names + objects[uwep->otype].oc_name_offset);
+      //      StrPrintF(ScratchBuffer, "Your %s glows silver for a moment.",
+      //		oc_names + objects[uwep->otype].oc_name_offset);
+      StrPrintF(ScratchBuffer, "Your %s %s silver for a moment.",
+		aobjnam(uwep, "glow"));      // bug fix from 1980s.
       message(ScratchBuffer);
       uwep->bitflags |= O_IS_RUSTFREE;
-    } else
-      if (!chwepon(scroll, 1))		/* tests for !uwep */
-	return true;
+    } else {
+      tri_val_t t = chwepon(scroll, 1);		/* tests for !uwep */
+      if (t == NO_OP) return DONE;
+      if (t == GO_ON) return GO_ON;
+      // else strange_feeling was not called, so keep on trucking.
+    }
     break;
   case SCR_DAMAGE_WEAPON:
     if (uwep && confused) {
-      StrPrintF(ScratchBuffer, "Your %s glows purple for a moment.",
-		oc_names + objects[uwep->otype].oc_name_offset);
+      //      StrPrintF(ScratchBuffer, "Your %s glows purple for a moment.",
+      //		oc_names + objects[uwep->otype].oc_name_offset);
+      StrPrintF(ScratchBuffer, "Your %s %s purple for a moment.",
+		aobjnam(uwep, "glow"));      // bug fix from 1980s.
       message(ScratchBuffer);
       uwep->bitflags &= ~O_IS_RUSTFREE;
-    } else
-      if (!chwepon(scroll, -1))	/* tests for !uwep */
-	return true;
+    } else {
+      tri_val_t t = chwepon(scroll, -1);		/* tests for !uwep */
+      if (t == NO_OP) return DONE;
+      if (t == GO_ON) return GO_ON;
+      // else strange_feeling was not called, so keep on trucking.
+    }
     break;
   case SCR_TAMING:
     {
@@ -198,8 +218,13 @@ Boolean do_read(obj_t *scroll)
     } else {
       engrave_or_what = GET_GENOCIDE;
       FrmPopupForm(EngraveForm);
+      // hey... I should probably make it not take a turn until afterward..
+      // adding:
+      if (GO_ON != finish_do_read(scroll, known, confused))
+	show_all_messages();
+      // the 'else' will actually never happen.
+      return GO_ON;
     }
-    // hey... I should probably make it not take a turn until afterward..
     break;
   case SCR_LIGHT:
     if (!Blind) known = true;
@@ -222,15 +247,16 @@ Boolean do_read(obj_t *scroll)
       trap_t *ttmp;
 
       if (!ftrap) {
-	strange_feeling(scroll, "Your toes stop itching.");
-	return true;
+	b = strange_feeling(scroll, "Your toes stop itching.");
+	return ((b) ? GO_ON : DONE);
       } else {
 	for (ttmp = ftrap; ttmp; ttmp = ttmp->ntrap)
 	  if (ttmp->tx != you.ux || ttmp->ty != you.uy) {
 	    sense_what = SENSE_GOLD_CONFUSED;
 	    sense_by_what = scroll;
+	    sense_init_screen();
 	    FrmPopupForm(SenseForm);
-	    return false; // postpone the tick
+	    return GO_ON; // postpone the tick
 	  }
 	message("Your toes itch!");
 	break;
@@ -239,16 +265,17 @@ Boolean do_read(obj_t *scroll)
       gold_t *gtmp;
 
       if (!fgold) {
-	strange_feeling(scroll, "You feel materially poor.");
-	return true;
+	b = strange_feeling(scroll, "You feel materially poor.");
+	return ((b) ? GO_ON : DONE);
       } else {
 	known = true;
 	for (gtmp = fgold; gtmp; gtmp = gtmp->ngold)
 	  if (gtmp->gx != you.ux || gtmp->gy != you.uy) {
 	    sense_what = SENSE_GOLD;
 	    sense_by_what = scroll;
+	    sense_init_screen();
 	    FrmPopupForm(SenseForm);
-	    return false; // postpone the tick
+	    return GO_ON; // postpone the tick
 	  }
 	message("You notice some gold between your feet.");
 	break;
@@ -260,14 +287,16 @@ Boolean do_read(obj_t *scroll)
       Short ct = 0, ctu = 0;
       obj_t *obj;
 
+      Char foodsym = confused ? POTION_SYM : FOOD_SYM;
       for (obj = fobj; obj; obj = obj->nobj)
-	if (obj->olet == FOOD_SYM) {
+	//	if (obj->olet == FOOD_SYM) { // Bug fix from 1980s:
+	if (obj->olet == foodsym) {
 	  if (obj->ox == you.ux && obj->oy == you.uy) ctu++;
 	  else ct++;
 	}
       if (!ct && !ctu) {
-	strange_feeling(scroll,"Your nose twitches.");
-	return true;
+	b = strange_feeling(scroll,"Your nose twitches.");
+	return ((b) ? GO_ON : DONE);
       } else if (!ct) {
 	known = true;
 	StrPrintF(ScratchBuffer, "You smell %s close nearby.",
@@ -277,8 +306,9 @@ Boolean do_read(obj_t *scroll)
 	known = true;
 	sense_what = (confused ? SENSE_FOOD_CONFUSED : SENSE_FOOD);
 	sense_by_what = scroll;
+	sense_init_screen();
 	FrmPopupForm(SenseForm);
-	return false; // postpone the tick
+	return GO_ON; // postpone the tick
       }
       break;
     }
@@ -298,14 +328,15 @@ Boolean do_read(obj_t *scroll)
       );
     */
     //    identify_count = rund(5) ? 1 : rund(5);
-    if (!invent)
+    if (!invent) {
       message("You have nothing to identify.");
-    else {
+      return DONE; // we already used up the scroll..
+    } else {
       extern Boolean drop_not_identify;
       drop_not_identify = false;
       FrmPopupForm(ObjTypeForm);
+      return GO_ON;
     }
-    return true;
   case SCR_MAGIC_MAPPING: // XXX Doesn't actually work yet.
     {
       //      struct rm *lev;
@@ -324,12 +355,11 @@ Boolean do_read(obj_t *scroll)
 	  if (num == SCORR) {
 	    set_cell_type(floor_info[zx][zy], CORR); // lev->typ = CORR;
 	    floor_symbol[zx][zy] = CORR_SYM; // lev->scrsym = CORR_SYM;
-	  } else
-	    if (num == SDOOR) {
-	      set_cell_type(floor_info[zx][zy], DOOR); // lev->typ = DOOR;
-	      floor_symbol[zx][zy] = DOOR_SYM; // lev->scrsym = '+';
-	      /* do sth in doors ? */
-	    } else if (!get_cell_seen(floor_info[zx][zy])) continue;//lev->seen
+	  } else if (num == SDOOR) {
+	    set_cell_type(floor_info[zx][zy], DOOR); // lev->typ = DOOR;
+	    floor_symbol[zx][zy] = DOOR_SYM; // lev->scrsym = '+';
+	    /* do sth in doors ? */
+	  } else if (get_cell_seen(floor_info[zx][zy])) continue;//lev->seen
 	  if (num != ROOM) {
 	    floor_info[zx][zy] |= (NEW_CELL|SEEN_CELL); //lev->seen=lev->new=1;
 	    if (floor_symbol[zx][zy] == ' ' || !floor_symbol[zx][zy])
@@ -342,6 +372,7 @@ Boolean do_read(obj_t *scroll)
     break;
   case SCR_AMNESIA:
     {
+      void clear_visible();
       Short zx, zy;
 
       known = true;
@@ -350,8 +381,10 @@ Boolean do_read(obj_t *scroll)
 	  if (!confused || rund(7))
 	    if (!cansee(zx,zy))
 	      floor_info[zx][zy] &= ~SEEN_CELL; // levl[zx][zy].seen = 0;
+      clear_visible();
       refresh(); // docrt();
       message("Thinking of Maud you forget everything else.");
+      //XXX hm. it "works" perfectly for the Map but not at all for the screen.
       break;
     }
   case SCR_FIRE:
@@ -361,8 +394,14 @@ Boolean do_read(obj_t *scroll)
 
       known = true;
       if (confused) {
-	message("The scroll catches fire and you burn your hands.");
-	losehp(1, "scroll of fire");
+	// fire resistance case was added as bugfix from 1980s.
+	if (Fire_resistance) {
+	  message("The scroll catches fire.");
+	  message("You are uninjured!");
+	} else {
+	  message("The scroll catches fire and you burn your hands.");
+	  losehp(1, "scroll of fire");
+	}
       } else {
 	message("The scroll erupts in a tower of flame!");
 	if (Fire_resistance)
@@ -410,14 +449,15 @@ Boolean do_read(obj_t *scroll)
     message(ScratchBuffer);
     break;
   }
-  finish_do_scroll(scroll, known, confused);
-  return true;
+  return finish_do_read(scroll, known, confused);
+  //  return true;
 }
 // 'cause we also need to call this after leaving the SenseForm!
-void finish_do_scroll(obj_t *scroll, Boolean known, Boolean confused)
+tri_val_t finish_do_read(obj_t *scroll, Boolean known, Boolean confused)
 {
-  if (!scroll) return;
-    // XXX I need a "finish_do_scroll(sense_by_what, bool1, bool2)"
+  Boolean go_on = false;
+  if (!scroll) return NO_OP; // bug if that happens.
+    // XXX I need a "finish_do_read(sense_by_what, bool1, bool2)"
   if (!BITTEST(oc_name_known, scroll->otype)) {
     if (known && !confused) {
       // XXX need to make its name known.
@@ -428,9 +468,12 @@ void finish_do_scroll(obj_t *scroll, Boolean known, Boolean confused)
       show_all_messages();
       clone_for_call(scroll); // so we don't have to worry about useup!
       FrmPopupForm(EngraveForm);
+      go_on = true;
     }
   }
   useup(scroll);
+  if (go_on) return GO_ON;
+  else       return DONE;
 }
 
 

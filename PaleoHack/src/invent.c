@@ -16,6 +16,7 @@ static Short obj_to_let(struct obj *obj) SEC_2;
 static Char * xprname(obj_t *obj, Char let) SEC_2;
 static Boolean is_mergy(Char olet) SEC_2;
 static Boolean merged(obj_t *otmp, obj_t *obj, Boolean lose) SEC_2;
+static Boolean countgold() SEC_5;
 
 
 // Goal: Find an unused inventory-letter and assign it to otmp.
@@ -340,7 +341,9 @@ Short askchain(obj_t *objchn, Char *filter, Char *prompt, Boolean allflag,
     if (++ilet > 'z') ilet = 'A';
     otmp2 = otmp->nobj;
     if (filter && *filter && !StrChr(filter, otmp->olet)) continue;
-    if (ckfn && !(*ckfn)(otmp)) continue;
+    if (ckfn && !(*ckfn)(otmp)) continue; // XXXX
+    // What it should do, if something is unpaid, is
+    // to ask for each unpaid item.
     if (!allflag)
       answer = FrmCustomAlert(PickUpThisP, prompt, xprname(otmp, ilet), NULL);
     else answer = PICKUP_YES;
@@ -403,6 +406,67 @@ static Char * xprname(obj_t *obj, Char let)
   return ScratchBuffer;
 }
 
+
+
+/* look at what is here */
+Boolean do_look()
+{
+  obj_t *otmp, *otmp0;
+  gold_t *gold;
+  Char *verb = Blind ? "feel" : "see";
+  Short ct = 0;
+  Char gbuf[30];
+
+  if (!you.uswallow) {
+    if (Blind) {
+      message("You try to feel what is lying here on the floor.");
+      if (Levitation) {				/* ab@unido */
+	message("You cannot reach the floor!");
+	return true;
+      }
+    }
+    otmp0 = obj_at(you.ux, you.uy);
+    gold = gold_at(you.ux, you.uy);
+  }
+
+  if (you.uswallow || (!otmp0 && !gold)) {
+    StrPrintF(ScratchBuffer, "You %s no objects here.", verb);
+    message(ScratchBuffer);
+    return(!!Blind); // '!!' ?
+  }
+
+  //  cornline(0, "Things that are here:");
+  for (otmp = otmp0 ; otmp ; otmp = otmp->nobj)
+    if (otmp->ox == you.ux && otmp->oy == you.uy) {
+      ct++;
+      if (Blind && otmp->otype == DEAD_COCKATRICE && !uarmg) {
+	message("Touching the dead cockatrice is a fatal mistake ...");
+	message("You die ...");
+	killer = "dead cockatrice";
+	done("died");
+      }
+    }
+  if (gold) {
+    ct++;
+    StrPrintF(gbuf, "%ld gold piec%s",
+	      gold->amount, (gold->amount == 1 ? "e" : "es"));
+  }
+
+  if (ct > 1) {
+    message("Things that are here:");
+    for (otmp = otmp0 ; otmp ; otmp = otmp->nobj)
+      if (otmp->ox == you.ux && otmp->oy == you.uy)
+	//      cornline(1, doname(otmp));
+	message(doname(otmp));
+    message(gbuf);
+  } else if (ct == 1) {
+    StrPrintF(ScratchBuffer, "You %s here %s.", verb, 
+	      (!gold) ? doname(otmp0) : gbuf);
+    message(ScratchBuffer);
+  }
+
+  return(!!Blind);
+}
 
 
 void stackobj(obj_t *obj)
@@ -477,3 +541,53 @@ obj_t * splitobj(obj_t *obj, Short num) // this was in "do.c"
  */
 
 
+/*
+ * Gold is no longer displayed; in fact, when you have a lot of money,
+ * it may take a while before you have counted it all.
+ * [Bug: d$ and pickup still tell you how much it was.]
+ */
+//extern Short (*occupation)();
+//extern Char *occtxt;
+Long goldcounted;
+extern Boolean stop_occupation_now; // in apply.c
+
+static Boolean countgold()
+{
+  if ((goldcounted += 100*(you.ulevel + 1)) >= you.ugold) {
+    Long eps = 0;
+    if (!rund(2)) eps = rnd((Short) (you.ugold/100 + 1));
+    StrPrintF(ScratchBuffer, "You probably have about %ld gold pieces.",
+	      you.ugold + eps);
+    message(ScratchBuffer);
+    return false;	/* done */
+  }
+  return true;		/* continue */
+}
+
+Boolean doprgold()
+{
+  if (!you.ugold)
+    message("You do not carry any gold.");
+  else if (you.ugold <= 500) {
+    StrPrintF(ScratchBuffer, "You are carrying %ld gold piece%s",
+	      you.ugold, (you.ugold == 1) ? "." : "s.");
+    message(ScratchBuffer);
+  } else {
+    message("You sit down in order to count your gold pieces.");
+    goldcounted = 500;
+    //    occupation = countgold;
+    //    occtxt = "counting your gold";
+    stop_occupation_now = false;
+    while (true) {
+      tick();
+      if (monster_nearby() || stop_occupation_now) {
+	message("You stop counting your gold.");
+	break;
+      } else if (!countgold())
+	break;
+    }
+    // main loop will call tock() to print messages.
+    // maybe I should return false to avoid taking n+1 turns???  xxxx
+  }
+  return true;
+}

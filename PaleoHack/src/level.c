@@ -553,7 +553,7 @@ static void restworms(VoidPtr *p)
 // Sanity check.
 void save_tag(VoidPtr p, Short *offset, Char *tag)
 {
-  DmWrite(p, *offset, tag, sizeof(Char)*4);
+  DmWrite(p, *offset, tag, sizeof(Char)*4); // XXX.  This crashed at least once
   *offset += 4;
 }
 void check_tag(VoidPtr *p, Char *tag)
