@@ -296,7 +296,7 @@ Boolean do_move() // was domove in hack.c
       unpobj(uball);/* BAH %% */
       uchain->ox = you.ux;
       uchain->oy = you.uy;
-      nomul(-2); // XXXXXXX
+      nomul(-2);
       spin_multi("");
     }
   } // end of dragging.
@@ -835,7 +835,7 @@ void losehp(Short n, Char *knam)
   if (you.uhp < 1) {
     // (knam is either a pointer into mon_names or a const text string.)
     killer = knam;	/* the thing that killed you */
-    done("died"); // XXX
+    done("died");
     return;
   }
 }
@@ -845,7 +845,7 @@ void losehp_m(Short n, struct monst *mtmp)
   you.uhp -= n;
   flags.botl |= BOTL_HP;
   if (you.uhp < 1)
-    done_in_by(mtmp); // XXX
+    done_in_by(mtmp);
 }
 
 Long newuexp()
@@ -911,16 +911,18 @@ Boolean do_up()
   return true;
 }
 
-// this was in main.c
+// this was in main.c   // unused now
+/*
 static void glo(Short foo)
 {
-  //  /* construct the string  xlock.n  */
+  //  / * construct the string  xlock.n  * /
   //  Char *tf;
   //
   //  tf = lock;
   //  while (*tf && *tf != '.') tf++;
   //  (void) sprintf(tf, ".%d", foo);
 }
+*/
 
 // this was in do.c
 void clear_visible(); // display.c
@@ -930,7 +932,7 @@ void goto_level(Short newlevel, Boolean at_stairs)
   Boolean up = (newlevel < dlevel);
 
   if (newlevel <= 0) {
-    done("escaped");    /* in fact < 0 is impossible */  // XXXX
+    done("escaped");    /* in fact < 0 is impossible */ // if you say so.
     return;
   }
   if (newlevel > MAXLEVEL) newlevel = MAXLEVEL;	/* strange ... */
@@ -965,7 +967,7 @@ void goto_level(Short newlevel, Boolean at_stairs)
   you.ux = FAR;				/* hack */
   inshop();			/* probably was a trapdoor */
 
-  savelev(dlevel, true); // XXXX savelev is not very well tested yet!!
+  savelev(dlevel, true);
 
   dlevel = newlevel;
   if (maxdlevel < dlevel)
@@ -989,7 +991,7 @@ void goto_level(Short newlevel, Boolean at_stairs)
       //	message("With great effort you climb the stairs.");
       //	placebc(true);
       //      }
-      // xxx I heard that the above will cause crash if Punished && Levitation.
+      // I heard that the above will cause crash if Punished && Levitation.
       if (Punished) {
 	if (!Levitation)
 	  message("With great effort you climb the stairs.");

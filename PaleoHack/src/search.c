@@ -113,7 +113,6 @@ Boolean do_id_trap() // was doidtrap
   trap_t *trap;
   Short x,y;
   UChar tmp_type;
-  //  if (!getdir(1)) return false; // XXX Do this AFTER a directional prompt!
   x = you.ux + you.dx;
   y = you.uy + you.dy;
   for (trap = ftrap ; trap ; trap = trap->ntrap) {

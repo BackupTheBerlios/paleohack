@@ -135,6 +135,8 @@
 #define NameCallP             1904
 #define LongShortP            1905
 #define MonsterInfoP          1906
+#define QuitP                 1907
+#define TeleMapP              1908
 
 #define Help1Str         2300
 #define Help2Str         2301

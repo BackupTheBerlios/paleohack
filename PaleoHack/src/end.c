@@ -259,7 +259,7 @@ void draw_tombstone()
     WinDrawChars(&c, 1, x, y);
     x += FntCharWidth(c);
   }
-  StrPrintF(buf, "2002"); // XXXXX fix this to be the "real" year
+  StrPrintF(buf, "%d", getyear());
   WinDrawChars_ctr(buf, StrLen(buf), SCR_W/2, y-2*LINE_H);
 
 

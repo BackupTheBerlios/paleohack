@@ -7,7 +7,7 @@
 #include "paleohackRsc.h"
 #include "bit.h"
 
-static void ghost_from_bottle() SEC_2;
+static void ghost_from_bottle() SEC_3; //SEC_2;
 
 #define MAX_BOTTLES 7
 Char *bottlenames[] = { // max 6 chars + \0
@@ -398,7 +398,7 @@ void potionbreathe(obj_t *obj)
 }
 
 
-/*
+/* (Notes from the original hack)
  * -- rudimentary -- to do this correctly requires much more work
  * -- all sharp weapons get one or more qualities derived from the potions
  * -- texts on scrolls may be (partially) wiped out; do they become blank?

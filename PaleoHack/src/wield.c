@@ -16,7 +16,7 @@ Boolean oops_cockatrice(obj_t *wep)
 {
   if (!wep) return false;
   if (!uarmg && wep->otype == DEAD_COCKATRICE) {
-    if (FrmGetActiveFormID() != MainForm) LeaveForm(); // XXXX ?????
+    if (FrmGetActiveFormID() != MainForm) LeaveForm();
     message("You wield the dead cockatrice in your bare hands.");
     message("You turn to stone ...");
     killer="dead cockatrice";
@@ -32,8 +32,20 @@ Boolean do_wield(obj_t *wep)
 {
   if (wep == uwep && FrmGetActiveFormID() == InvForm)
     wep = NULL; // this is my little ACT_PUTUP kludge.
+  /* if (wep == uwep)
+       message("You are already wielding that!");
+     else */
 
-  if (wep == NULL) {
+  if (uwep && (uwep->bitflags & O_IS_CURSED)) {
+    //    message("Your weapon is welded to your hand!");
+    // need "aobjnam(uwep, "are"));"
+    /*StrPrintF(ScratchBuffer, "The %s welded to your hand!",*/
+    StrPrintF(ScratchBuffer, "But the %s welded to your hand!",
+	      aobjnam(uwep, "are"));
+    message(ScratchBuffer);    
+  }
+
+  else if (wep == NULL) {
     if (uwep == 0)
       message("You are already empty handed.");
     else {
@@ -44,15 +56,6 @@ Boolean do_wield(obj_t *wep)
     return false;
   }
 
-  if (wep == uwep)
-    message("You are already wielding that!");
-  else if (uwep && (uwep->bitflags & O_IS_CURSED)) {
-    //    message("Your weapon is welded to your hand!");
-    // need "aobjnam(uwep, "are"));"
-    StrPrintF(ScratchBuffer, "The %s welded to your hand!",
-	      aobjnam(uwep, "are"));
-    message(ScratchBuffer);    
-  }
   // The cockatrice case is a bugfix from the 1980s.
   else if (oops_cockatrice(wep)) {
     return true;

@@ -317,13 +317,13 @@ static Boolean perform_action(FormPtr frm, Word lst_i, obj_t *otmp,
     // First the ones that don't exit:
   case ACT_PUTUP: inventory_item = -1; // fall through
   case ACT_WIELD: //
-    do_inv_wield(lst_i); // does some of the work over again.. oh well
+    do_inv_wield(lst_i); // does some of the work over again.. oh well.
     if (ia) { end_turn_start_turn(); return true; }
-    break;
+    return false; // <-- since do_inv_wield does the tick for you.
   case ACT_AOFF: 
     if (ia) LeaveForm();
     *worked = do_remove_armor(otmp);
-    if (*worked) took_time = true; // xxx
+    if (*worked) took_time = true;
     if (ia) { end_turn_start_turn(); return true; }
     break;
   case ACT_ROFF:
@@ -334,13 +334,13 @@ static Boolean perform_action(FormPtr frm, Word lst_i, obj_t *otmp,
   case ACT_AWEAR: //
     if (ia) LeaveForm();
     *worked = do_wear_armor(otmp);
-    if (*worked) took_time = true; // xxx
+    if (*worked) took_time = true;
     if (ia) { end_turn_start_turn(); return true; }
     break;
   case ACT_RWEAR: //
     if (ia) LeaveForm();
     *worked = do_wear_ring(otmp);
-    if (*worked) took_time = true; // xxx
+    if (*worked) took_time = true;
     if (ia) { end_turn_start_turn(); return true; }
     break;
     // Next the ones that ALWAYS exit:
@@ -386,18 +386,25 @@ static Boolean perform_action(FormPtr frm, Word lst_i, obj_t *otmp,
     // Next the ones that always exit but maybe don't take time?
   case ACT_CALL:
     handle_inv_call();
-    break;
+    return false;
   case ACT_NAME:
     handle_inv_name();
-    break;
+    return false;
   case ACT_DROP: case ACT_DROPALL:
     handle_invbtn_drop(lst_i);
-    break;
+    return false;
   case ACT_DIP:
     handle_inv_dip();
-    break; // xxx should return true sometimes instead
+    return false; // xxx should return true sometimes instead
+  case ACT_DIP_IN: //
+    free_inventory_select(frm);
+    LeaveForm();
+    do_dip(otmp, curr_state.item); // potion and item-to-dip
+    took_time = true;
+    end_turn_start_turn();
+    return leave;
   case ACT_THROW:
-    return handle_invbtn_throw();// XXX need to TEST after this is implemented.
+    return handle_invbtn_throw();
   case ACT_ENGRAVE:
     handle_inv_engrave();
     return leave;
@@ -415,6 +422,8 @@ static Boolean perform_action(FormPtr frm, Word lst_i, obj_t *otmp,
     end_turn_start_turn();
     return leave;
   }
+  if (!(*worked))
+    show_messages(); // need to show why-it-didn't-work
   return false;
 }
 
@@ -423,7 +432,7 @@ static Boolean perform_action(FormPtr frm, Word lst_i, obj_t *otmp,
 static Boolean handle_invbtn_drop(Word lst_i)
 {
   obj_t *otmp;
-  Short cnt = getobj_info.allowcnt - 1;
+  Short cnt = getobj_info.allowcnt - 1; // xxxx unused?
   //  Word curfrm = FrmGetActiveFormID();
 
   if (inventory_item != -1) {
@@ -439,10 +448,11 @@ static Boolean handle_invbtn_drop(Word lst_i)
     //    LstDrawList(FrmGetObjectPtr(frm, FrmGetObjectIndex(frm, list_if)));
     //    dwimify_buttons(frm, inventory_item);
     refresh_inv(lst_i);
-    // Note: need to take a turn.  XXXX I don't have a mechanism yet...
+    // Note: need to take a turn.  I don't have a mechanism yet...
     /*      //calc_bonuses(); end_of_turn(); start_of_turn(); */
     /*      take_a_turn(false); */
     // Maybe I should make n drops (within a session) take 1 turn.
+    // (Sounds reasonable.  Ok, that is what it does now.)
   }
   //  just_throwing = false;
   return true;
@@ -489,27 +499,30 @@ static Boolean handle_invbtn_cancel()
 
 static void handle_inv_dip()
 {
-  if (inventory_item != -1) {
-    message("dip!");
-    if (!(curr_state.item = get_nth_item(inventory_item)))
-      return; // BUG if this happens.
-    LeaveForm();
-  }
+  if (inventory_item == -1) return;
+  //  message("dip!");
+  if (!(curr_state.item = get_nth_item(inventory_item)))
+    return; // BUG if this happens.
+  LeaveForm();
+  // EXPERIMENTAL:
+  // need to prompt for a potion to dip into.
+  if (getobj_init("!", "dip in", ACT_DIP_IN))
+    FrmPopupForm(InvActionForm);
 }
+
 Int8 engrave_type;
 extern Short engrave_or_what;
 static void handle_inv_name()
 {
-  if (inventory_item != -1) {
-    //    message("name!");
-    if (!(curr_state.item = get_nth_item(inventory_item)))
-      return; // BUG if this happens.
-    LeaveForm();
-    // EXPERIMENTAL:
-    engrave_type = 0; // should be ignored anyway
-    engrave_or_what = ACT_NAME;
-    FrmPopupForm(EngraveForm);
-  }
+  if (inventory_item == -1) return;
+  //    message("name!");
+  if (!(curr_state.item = get_nth_item(inventory_item)))
+    return; // BUG if this happens.
+  LeaveForm();
+  // EXPERIMENTAL:
+  engrave_type = 0; // should be ignored anyway
+  engrave_or_what = ACT_NAME;
+  FrmPopupForm(EngraveForm);
 }
 static void handle_inv_call()
 {
@@ -537,6 +550,7 @@ static void handle_inv_call()
 
 static void do_inv_wield(Word lst_i)
 {
+  Boolean worked;
   obj_t *wep = NULL;
   Word curfrm = FrmGetActiveFormID();
 
@@ -544,12 +558,12 @@ static void do_inv_wield(Word lst_i)
     wep = get_nth_item(inventory_item);
   if (curfrm == InvActionForm)
     LeaveForm();
-  if (do_wield(wep)) {
+  worked = do_wield(wep);
+  if (worked)
     tick();
-    if (curfrm == InvForm) {
-      show_messages();
-      refresh_inv(lst_i);
-    }
+  if (curfrm == InvForm) {
+    show_messages();
+    if (worked) refresh_inv(lst_i);
   }
 }
 

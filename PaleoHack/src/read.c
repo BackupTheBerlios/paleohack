@@ -232,11 +232,23 @@ tri_val_t do_read(obj_t *scroll)
     break;
   case SCR_TELEPORTATION:
     if (confused) {
-      level_tele_start(); // XXXX Not tested yet!  Needs UI!
+      level_tele_start();
     } else {
+      extern Short map_mode_teleport;
       Short uroom = inroom(you.ux, you.uy);
-      tele(); // XXXX Not tested yet!  Needs UI!
+      map_mode_teleport = TELE_POTSCROLL;
+      tele();
       if (uroom != inroom(you.ux, you.uy)) known = true;
+    }
+    if (Teleport_control) {
+      // User is prompted for location to teleport to - DON'T take a turn.
+      known = true; /* since it ASKS about teleport you KNOW it's teleport.
+		       I assert: whether you're confused or not.
+		       this may not be 'correct' behavior,
+		       but it will sure make MY life easier. */
+      if (GO_ON != finish_do_read(scroll, known, false/*confused*/))
+	show_all_messages();
+      return GO_ON;
     }
     break;
   case SCR_GOLD_DETECTION:
@@ -338,7 +350,7 @@ tri_val_t do_read(obj_t *scroll)
       FrmPopupForm(ObjTypeForm);
       return GO_ON;
     }
-  case SCR_MAGIC_MAPPING: // XXX Doesn't actually work yet.
+  case SCR_MAGIC_MAPPING: //Doesn't actually work yet. // Works (oct03)
     {
       //      struct rm *lev;
       Short num, zx, zy;
@@ -380,12 +392,14 @@ tri_val_t do_read(obj_t *scroll)
       for (zx = 0; zx < DCOLS; zx++)
 	for (zy = 0; zy < DROWS; zy++)
 	  if (!confused || rund(7))
-	    if (!cansee(zx,zy))
-	      floor_info[zx][zy] &= ~SEEN_CELL; // levl[zx][zy].seen = 0;
+	    if (!cansee(zx,zy)) {
+	      // floor_info[zx][zy] &= ~SEEN_CELL; // levl[zx][zy].seen = 0;
+	      floor_info[zx][zy] &= ~(SEEN_CELL|NEW_CELL);//levl[zx][zy].seen=0;
+	      // see if this fixes the "some stuff is not cleared" bug....
+	    }
       clear_visible();
       refresh(); // docrt();
       message("Thinking of Maud you forget everything else.");
-      //XXX hm. it "works" perfectly for the Map but not at all for the screen.
       break;
     }
   case SCR_FIRE:
@@ -458,10 +472,12 @@ tri_val_t finish_do_read(obj_t *scroll, Boolean known, Boolean confused)
 {
   Boolean go_on = false;
   if (!scroll) return NO_OP; // bug if that happens.
+  // at least one case can kill you (cockatrice + destroy armor scroll) so:
+  if (you.dead) return DONE;
     // XXX I need a "finish_do_read(sense_by_what, bool1, bool2)"
   if (!BITTEST(oc_name_known, scroll->otype)) {
     if (known && !confused) {
-      // XXX need to make its name known.
+      // need to make its name known.
       BITSET(oc_name_known, scroll->otype);
       more_experienced(0,10);
     } else if (!oc_has_uname(scroll->otype)) {
@@ -530,8 +546,8 @@ void do_genocide(Char *buf)
   StrPrintF(ScratchBuffer, "Wiped out all %c's.", *buf);
   message(ScratchBuffer);
   if (*buf == you.usym) {
-    killer = "scroll of genocide"; // XXXX
-    you.uhp = -1; // hmm but we don't call 'done' yet?
+    killer = "scroll of genocide";     // ... I have tested it and it works!
+    you.uhp = -1; // (we don't call 'done' yet?  ok..)
   }
 }
 

@@ -74,7 +74,7 @@ static void stealarm()
 /* returns 1 when something was stolen */
 /* (or at least, when N should flee now) */
 /* avoid stealing the object stealoid */
-Boolean steal(monst_t *mtmp) // xxx not implemented yet (missing stealarm)
+Boolean steal(monst_t *mtmp) // xxx not implemented yet (missing stealarm) // oct2003 seems to be implemented now eh...
 {
   obj_t *otmp;
   Short tmp;

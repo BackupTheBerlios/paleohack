@@ -12,7 +12,7 @@ Boolean Inv_Form_HandleEvent(EventPtr e) SEC_1;
 Boolean InvAction_Form_HandleEvent(EventPtr e) SEC_4;
 Boolean InvMsg_Form_HandleEvent(EventPtr e) SEC_3;
 Boolean getobj_init(Char *let, Char *word, UChar action) SEC_4;
-Boolean ObjType_Form_HandleEvent(EventPtr e);// SEC_5; // debugging
+Boolean ObjType_Form_HandleEvent(EventPtr e);// SEC_5;//; debugging
 Boolean Sense_Form_HandleEvent(EventPtr e) SEC_1;
 Boolean MsgLog_Form_HandleEvent(EventPtr e) SEC_5;
 Boolean Engrave_Form_HandleEvent(EventPtr e) SEC_5;
@@ -26,9 +26,9 @@ void spin_multi(Char *msg);
 void writePrefs();
 void sense_init_screen() SEC_5;
 
-void greet_player();
+void greet_player();// SEC_5;
 void moon_player() SEC_1;
-void init_player();
+void init_player();// SEC_5;
 
 // <macros>
 #define DIST(x1,y1,x2,y2) (((x1)-(x2))*((x1)-(x2)) + ((y1)-(y2))*((y1)-(y2)))
@@ -72,8 +72,8 @@ Boolean midnight() SEC_1;
 
 // display.c
 //
-void where_in_dungeon(Short scr_x, Short scr_y, Short *dun_x, Short *dun_y);
-UChar peek_at(Short dun_x, Short dun_y); // get what the player sees in cell.
+void where_in_dungeon(Short scr_x, Short scr_y, Short *dun_x, Short *dun_y) SEC_5;
+UChar peek_at(Short dun_x, Short dun_y) SEC_5; // get what the player sees in cell.
 void relativize_move(Short *x, Short *y);
 void print(Short x, Short y, Short ch); // Equivalent of "atl"
 void on_scr(Short x, Short y); // results aren't being used since nscr !exists
@@ -90,7 +90,7 @@ void Tmp_at_init(Char c);
 void Tmp_at_newsymbol(Char c);
 void Tmp_at_cleanup();
 void Tmp_at(Int8 x, Int8 y);
-void swallowed();
+void swallowed() SEC_3; // ;
 void prme();
 Boolean vism_at(Short x, Short y);
 void pru();
@@ -105,8 +105,8 @@ void seemons();
 void pmon(monst_t *mon);
 void unpmon(struct monst *mon);
 Boolean toggle_itsy();
-void draw_directional();
-void undraw_directional();
+void draw_directional();// SEC_5;
+void undraw_directional();// SEC_5;
 
 //
 void count_message(Char *buf);
@@ -141,9 +141,9 @@ Short mon_in_trap(monst_t *mtmp) SEC_3;
 void selftouch(Char *arg) SEC_2;
 void float_up() SEC_2;
 void float_down() SEC_2;
-void tele() SEC_3;
+Boolean tele() SEC_3;
 void tele_finish(Short x, Short y, Boolean controlled) SEC_3;
-Boolean dotele() SEC_3;
+tri_val_t dotele() SEC_3;
 void placebc(Boolean attach) SEC_3;
 void unplacebc() SEC_3;
 void level_tele_start() SEC_3;
@@ -215,7 +215,8 @@ Boolean canseemon(monst_t *mtmp) SEC_2;
 // dog.c
 void makedog() SEC_4;
 void losedogs() SEC_4; 
-void keepdogs() SEC_4;
+void keepdogs() SEC_4; // nonrecursive version seems ok
+//void keepdogs_alt() SEC_4;
 void fall_down(monst_t *mtmp) SEC_4;
    // much more missing from dog.c...
 Short dog_move(monst_t *mtmp, Short after) SEC_4;
@@ -258,12 +259,12 @@ void save_tag(VoidPtr p, Short *offset, Char *tag);
 void check_tag(VoidPtr *p, Char *tag);
 Boolean getlev(UChar lev, Boolean not_bones) SEC_5;
 // save.c
-void save_you() SEC_5; // xxx could almost be static.
-Boolean dosave() SEC_5; // xxx these need testing too.
+void save_you() SEC_5; // could almost be static.
+Boolean dosave() SEC_5;
 Boolean dorecover() SEC_5;
 // bones.c
-void savebones() SEC_5; // xxx these need testing too.
-Boolean getbones() SEC_5; // xxx debug
+void savebones() SEC_5;
+Boolean getbones() SEC_5;
 // end.c
 void unsave() SEC_5;
 void done_in_by(monst_t *mtmp) SEC_5;
@@ -352,13 +353,13 @@ void dropx(obj_t *obj) SEC_5;
 Boolean do_throw() SEC_5; // was dothrow
 // eat.c
 Boolean eat_off_floor(Boolean *tried) SEC_1;
-Boolean do_eat(obj_t *otmp);
+Boolean do_eat(obj_t *otmp) SEC_5;
 void gethungry() SEC_2;
 void morehungry(Short num) SEC_2;
 void lesshungry(Short num) SEC_2;               // just in eat.c and potion.c
 Boolean poisonous(obj_t *otmp) SEC_2;           // just in eat.c and dog.c
 // potion.c
-tri_val_t do_drink(obj_t *otmp) SEC_2; // still missing a line at end for p_tofn xxxx
+tri_val_t do_drink(obj_t *otmp) SEC_2;
 tri_val_t finish_do_drink(obj_t *otmp, Boolean nothing, Boolean unkn) SEC_2;
 Boolean strange_feeling(obj_t *obj, Char *txt) SEC_2;
 void potionhit(monst_t *mon, obj_t *obj) SEC_1;
@@ -449,7 +450,7 @@ Boolean online(Short x, Short y) SEC_4;
 Boolean follower(monst_t *mtmp) SEC_4; // also used in dog.c
 
 // data.c
-void specify_what(UChar c);
+void specify_what(UChar c) SEC_5;
 
 
 // lock.c
@@ -466,3 +467,6 @@ void rec_ocdescr_set(Short i, Short val);
 
 
 
+// main.c (used also in form_map.c)
+Boolean convert_char_to_dir(Char d);
+Boolean do_xy_command(Short x, Short y);

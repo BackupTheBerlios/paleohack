@@ -392,3 +392,11 @@ typedef struct HackPreferenceType_s
 #define GO_ON 1
 #define DONE 2
 typedef UInt tri_val_t;
+
+// for distinguishing map-mode map form from teleport-mode map form
+#define TELE_MAP 0
+#define TELE_RNDTIMER 1
+#define TELE_DROWN 2
+#define TELE_POTSCROLL 3
+#define TELE_CMD 4
+#define TELE_TRAP 5

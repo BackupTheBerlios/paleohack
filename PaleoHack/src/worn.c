@@ -168,7 +168,7 @@ Boolean armoroff(obj_t *otmp) // was in do_wear.c
   if (cursed(otmp)) return false;
   setworn(NULL, (otmp->owornmask & W_ARMOR));
   if (delay) {
-    nomul(delay); // XXXX
+    nomul(delay);
     switch(otmp->otype) {
     case HELMET:
       spin_multi("You finished taking off your helmet.");
@@ -253,11 +253,11 @@ Boolean do_wear_armor(obj_t *otmp) // was doweararm - was do_wear.c
     setuwep(NULL);
   delay = -objects[otmp->otype].oc_delay;
   if (delay) {
-    nomul(delay); // XXX need to test
+    nomul(delay);
     //    nomovemsg = "You finished your dressing manoeuvre.";
     spin_multi("You finish your dressing manoeuvre.");
   } else {
-    message("You put it on."); // xx added
+    message("You put it on."); // (added this remark.)
   }
   otmp->bitflags |= O_IS_KNOWN; //otmp->known = 1;
   return true;
@@ -301,7 +301,6 @@ Boolean do_wear_ring(obj_t *otmp)
   setworn(otmp, mask);
   if (otmp == uwep)
     setuwep(NULL);
-  // XXXX The EFFECTS of wearing a ring are not tested yet!
   oldprop = you.uprops[PROP(otmp->otype)].p_flags;
   you.uprops[PROP(otmp->otype)].p_flags |= mask;
   switch(otmp->otype) {
@@ -310,7 +309,7 @@ Boolean do_wear_ring(obj_t *otmp)
       float_up();
     break;
   case RIN_PROTECTION_FROM_SHAPE_CHANGERS:
-    res_cham();
+    res_cham(); // xxx this ring is not yet tested
     break;
   case RIN_GAIN_STRENGTH:
     you.ustr += otmp->spe;
@@ -339,10 +338,10 @@ void ringoff(obj_t *obj)
   switch(obj->otype) {
   case RIN_FIRE_RESISTANCE:
     // Bad luck if the player is in hell... --jgm
-    if (!Fire_resistance && dlevel >= 30) {
+    if (!Fire_resistance && dlevel >= 30) { // xxx need to test
       message("The flames of Hell burn you to a crisp.");
-      killer = "stupidity in hell"; // XXX
-      done("burned"); // XXX
+      killer = "stupidity in hell";
+      done("burned");
       return;
     }
     break;

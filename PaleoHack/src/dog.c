@@ -66,17 +66,18 @@ void losedogs()
 }
 
 
-// aiee!  make this be NOT recursive. XXX
+/*
+// aiee!  make this be NOT recursive. X X X
 // should not be too hard: have a mtmp_next, set it before calling unlink_mon.
 // move the "mtmp = mtmp->nmon" explicitly into the loop in the 'else',
 // and in the 'if' do "mtmp = mtmp_next" instead.
 // Going to bed now.
-void keepdogs()
+void keepdogs_alt()
 {
   monst_t *mtmp;
   // search through all of fmon for monsters that are close to you and
   // are your "followers" (and are not asleep or frozen).
-  //  message("keepdogs is recursive... evil."); XXXX
+  //  message("keepdogs is recursive... evil."); X X X X
   for (mtmp = fmon; mtmp; mtmp = mtmp->nmon)
     if (dist(mtmp->mx,mtmp->my) < 3 && follower(mtmp)
 	&& !(mtmp->bitflags & (M_IS_ASLEEP | M_IS_FROZEN))) {
@@ -84,9 +85,27 @@ void keepdogs()
       mtmp->nmon = mydogs;
       mydogs = mtmp; // and put it on the head of the mydogs list.
       unpmon(mtmp);
-      keepdogs();       /* we destroyed the link, so use recursion */
-      return;           /* (admittedly somewhat primitive) */
+      keepdogs();       / * we destroyed the link, so use recursion * /
+      return;           / * (admittedly somewhat primitive) * /
     }
+}
+*/
+// The new, politically correct version:
+void keepdogs()
+{
+  monst_t *mtmp, *next_mon = NULL;
+  // search through all of fmon for monsters that are close to you and
+  // are your "followers" (and are not asleep or frozen).
+  for (mtmp = fmon ; mtmp ; mtmp = next_mon) {
+    next_mon = mtmp->nmon; // get 'next' BEFORE we maybe clobber mtmp->nmon.
+    if (dist(mtmp->mx,mtmp->my) < 3 && follower(mtmp)
+	&& !(mtmp->bitflags & (M_IS_ASLEEP | M_IS_FROZEN))) {
+      unlink_mon(mtmp); // dike this monster out of the fmon list..
+      mtmp->nmon = mydogs; // set its "next" to the old head of mydogs,
+      mydogs = mtmp; // and put it on the head of the mydogs list.
+      unpmon(mtmp); // undraw it
+    }
+  }
 }
 
 void fall_down(struct monst *mtmp)

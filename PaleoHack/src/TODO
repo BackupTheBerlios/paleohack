@@ -152,6 +152,7 @@ Dungeon levels are saved/restored as you ascend/descend the stairs!
 You can die now!
  But there is no top-ten score list yet.
   When you die, it should be saving a bones file.  Haven't tested loading yet!
+   (OCT 2003 - I FOUGHT MY GHOST TWICE NOW.  LOADING BONES SEEMS TO WORK OK.)
 You can throw things now!  throwing weapons and food seems to work.
 You can name monsters! such as, your pet.
 Level-teleportation sort of works.  (intra-level teleport-control doesn't work)
@@ -288,6 +289,7 @@ TO DO:	ANYTHING NOT YET COMPLETED ON PREVIOUS to do list, PLUS:
 	PH will crash if you leave character generation before 1st character.
 		or anyway it will create an empty save file.
 		(note, this is only for the very first character ever.)
+		FIXED in 2003
 	Make sure dog doesn't print in inv, when you're identifying something.
 	Sometimes you start out with NO DOG.
 
@@ -395,6 +397,7 @@ TO DO:  teleportation interacts poorly with 'more' mode......
 		DONE FOR DUNGEON MENUS, BUT NOT FOR 'INV' FORM
 	game crashed if killed by eel? fix this.
 	Need 'count' (e.g. "99." SHOULD rest for 99 turns).
+		DONE, UNLESS I FORGOT SOMETHING
         Add preferences/hardwarebutton forms to configure my_prefs values.
 		PARTLY DONE
    Bug:	sometimes levels are being created with cruft in walls, or [] character
@@ -405,9 +408,14 @@ TO DO:  teleportation interacts poorly with 'more' mode......
    Bug:	Sometimes get a memory error (in movemon()).
 		PH just read from memory location 0x7E7C, unallocated chunk.
 		I have moved movemon to the default code section, keep eye out.
+	   NOTE(2003) OK TRACKED IT DOWN ONE MORE LEVEL TO
+	        " if (fr < 0 && do_chugw(mtmp)) "
+                I have moved do_chugw to the default code section, keep eye out
+                (in oct 17 2003.  see entry for that date below.)
    Bug:	PH will crash if you leave character generation before 1st character.
 		or anyway it will create an empty save file.
 		(note, this is only for the very first character ever.)
+	   FIXED 2003
    Bug:	Sometimes you start out with NO DOG.  I think.
    x:   Check for things that are supposed to use {delay, nomul, spin_multi}
 	but don't yet due to laziness (like, 'W' was one til I fixed it).
@@ -415,9 +423,142 @@ TO DO:  teleportation interacts poorly with 'more' mode......
 		Need to test "stealarm" (steal.c)
    x:   I haven't tested the icebox in a long long time.  Looks like it works
         but its food preservation ability has never been confirmed by me.
+   BUG: I haven't tested 'drown' but I will BET that dotele() will not
+        do the right thing if you have Teleport_control.
+   BUG: I haven't tested teleportation traps but I will BET they will not
+        do the right thing if you have Teleport_control.
+   x:   I should change unconfused controlled Teleport so that you
+        are prompted with the MAP screen not with the DUNGEON screen.
+		DONE OCT2003 (but need to fix how it takes time)
+
+----------
+SAT AUG 31
+----------
+Fixed scroll-of-teleportation to work for {confused, not} X {control, not}.
+Fixed hardware buttons so that they repeat with 'multi'.  Yay.
+Fixed MAGIC_MENU commands (e.g. 'search') so that they repeat with 'multi'.
+Fixed ^T (with teleport control) so that it works properly,
+  except that when you become hungry it generates -more-, which is misleading,
+  perhaps I need a show_all_messages() in there somewhere?
+Fixed intrinsic-teleport (having eaten dead leprechaun), should work ok.
+XXXXX Still need to work on OTHER THINGS THAT CALL tele():
+	dotele -- drown()
+	vtele -- teleportation trap in special cases
+	teleportation trap
+	invault() but only if a bug occurs
 
 
+To test teleportation:
+	wish for: ring of teleport control
+		  dead leprechaun
+		  potion of confusion
+		  3 scrolls of teleportation
 
 ON A RAINY DAY:	Colorize the Map screen
-		Add a confirmation popup "are you sure" to "Quit".
+		Add a confirmation popup "are you sure" to "Quit". (DONE 2003)
 Note to self: to be wizard in linux hack, "./hack -D"
+
+
+-------
+transcript:
+
+The beautiful nymph seduces you and you start taking off your armor.
+The nymph stole a wand of magic missile.
+The nymph stole a +0 long sword.
+The nymph stole a +1 shield.
+The nymph stole a +0 splint mail.
+You finished taking off your suit.
+She stole a +0 splint mail.
+
+1. is she supposed to steal that many things?
+2. there are two messages for the single splint mail.  is that ok or bad?
+
+*************************************************************************
+* * *  time passes (it's now October 2003!  over a year since last edit.)
+*************************************************************************
+Just making a note to myself that I should get back to this sometime.
+
+Oct 16 2003...
+...Is it ok that sometimes when you are running you bump into your dog?
+> Add a confirmation popup "are you sure" to "Quit".
+  DONE.
+> Bug:	PH will crash if you leave character generation before 1st character.
+  FIXED.  (trivially, by initializing 'you.dead' to true)
+ok that's enough for one night.
+
+Oct 17 2003...
+
+The "you are already wearing some armor" message does not pop up the
+message box in inventory.
+	FIXED
+
+Had a "dm write check failed" on me during playtesting.. with a knight
+a few levels down who had recently read a scroll of turning your armor
+to dust (possibly unrelated) and I think had just entered combat or
+picked up something or who knows what.
+  Possibly reproduced in pose...  shrug.  I've moved "do_chugw" into
+  default code section for further testing (it's the thing really
+  being called at mon.c:95).
+ Program received signal SIGTRAP, Trace/breakpoint trap.
+ 0x10c153d6 in ?? ()
+ (gdb) bt
+ #0  0x10c153d6 in ?? ()
+ #1  0x62390 in ?? ()
+ #2  0x63bba in ?? ()
+ #3  0x632d8 in ?? ()
+ #4  0x62e82 in ?? ()
+ #5  0x4c8aa in get_info_size () at mon.c:95
+ #6  0x47050 in saveobjchn () at main.c:183
+ #7  0x47f64 in do_multi_move () at main.c:870
+ #8  0x479e2 in add_rs_x () at main.c:616
+ #9  0x47670 in beam_hit_obj () at main.c:496
+ #10 0x10c5c192 in ?? ()
+ #11 0x10c5f4e2 in ?? ()
+ #12 0x48b4e in amulet () at main.c:1510
+oh, this is the 'movemon' heisenbug, tracked down one more level.  cool.
+it could be caused by: (can these things happen?)
+mtmp being null
+do_chug(...) screwing up
+Warning being funky maybe (that is, you.uprops[17].p_flags)
+mtmp->data being null
+dist(...) screwing up
+canseemon(...) screwing up
+
+post-Maud, what is the screen supposed to look like?  what it looks
+like is this <maud1.ppm> ... not on the map screen though, that's fine.
+I seem to have a comment in read.c agreeing with that problem.
+hm, is it just that I'm in a tiny font?  dang.. sometimes it works fine.
+	FIXED (?) ... ADDED NEW_CELL TO THE BITS BEING CLEARED.
+
+wand of undead turning works... cute.
+wresting one more from worn out wand works...
+petrifying monsters with cockatrice corpse works...
+mimicing after eating dead mimic DOES NOT WORK.... FIXED... works now...
+something gave me immunity to poison food... whatever it is, it works...
+ran into a nymph who now steals one thing at a time... good...
+dipping WORKS now (to the limited extent that it was implemented in hack)...
+figure how to drop "some" of a multiple item? you CAN'T in hack I think...
+maybe have 'throw' and 'zap' prompt with the most recent used item?...
+
+todo:
+    name a 2hander 'orcrist' and try it on orcs - DONE, seems to work
+    think about saving worms (blah)
+    <remember to disable the "wish" menu-item before publicly releasing>
+
+    make teleport-control give you the map screen to choose from
+	DONE, ALMOST.
+	BUG: scrolls of teleportation, etc, take no time.  or if I fix
+             that, then intrinsic teleports will double-tick.  Maybe I
+             can examine curr_state.mode to decide whether to tick at
+             the end?
+tested level_tele briefly (confused+controlled teleport) - seems to WORK.
+TESTING & FIXING turn-taking for teleport: cases:
+  random timer (eating L corpse) - unc, OK, con, OK, why "Sorry" so often?
+  scroll     - uncontrolled, OK, controlled, OK.  this case is DONE.
+  command ^T - uncontrolled, OK, controlled, OK.  this case is DONE.
+  drowning   - ???
+  trap       - ???
+need to cook up some test harness - creation of pools/traps.  sigh too tired.
+
+
+Need to test everything swallowing-related.

@@ -17,16 +17,16 @@ Boolean dodrop()
 }
 */
 
-// return true if you dropped something
-// xxx no, return "number of things dropped"
+// return "number of things dropped"
+// (used to be "return true if you dropped something")
 Short drop(obj_t *obj)
 {
   if (!obj) return 0;
   if (obj->olet == '$') {		/* pseudo object */
-     // XXX this section is not tested yet
+     // this section works now
     Long amount = (Long) obj->oextra; // XXXX!
 
-    if (amount <= 0)
+    if (amount <= 0) // (shouldn't happen, given current UI)
       message("You didn't drop any gold pieces.");
     else {
       mkgold(amount, you.ux, you.uy);
@@ -37,7 +37,7 @@ Short drop(obj_t *obj)
     }
     free_me((VoidPtr) obj); //    free((Char *) obj); // not obfree, eh
     return 1;
-    // XXX end of untested (also unreachable due to missing UI) region
+    // end of formerly-untested-and-unreachable region
   }
   if (obj->owornmask & (W_ARMOR | W_RING)) {
     message("You cannot drop something you are wearing.");

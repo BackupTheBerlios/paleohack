@@ -112,7 +112,9 @@ void invault()
     /* first find the goal for the guard */
     // search edges of a square around you; expand, repeat until corridor found
     if (!find_guard_goal(&gx, &gy)) {
+      extern Short map_mode_teleport;
       message("BUG: Not a single corridor on this level??");
+      map_mode_teleport = TELE_RNDTIMER; // close enough, called at same place.
       tele();
       return;
     }

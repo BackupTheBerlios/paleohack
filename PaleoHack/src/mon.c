@@ -7,7 +7,7 @@
 
 coord mtrack[MTSZ];     /* monster track */
 
-static Short do_chugw(monst_t *mtmp) SEC_3;
+static Short do_chugw(monst_t *mtmp); // SEC_3; // XXXX had a bug here?
 static void mpickgold(monst_t *mtmp) SEC_3;
 static void mpickgems(monst_t *mtmp) SEC_3;
 //static Boolean getwn(monst_t *mtmp) { return false; } // fake...
@@ -92,7 +92,7 @@ void movemon()
       if (Conflict && cansee(mtmp->mx, mtmp->my)
 	  && (fr = fightm(mtmp)) == 2)
 	continue;
-      if (fr < 0 && do_chugw(mtmp))
+      if (fr < 0 && do_chugw(mtmp)) // xxx I have tracked heisenbug this far.
 	continue;
     }
     if (mtmp->mspeed == MFAST && do_chugw(mtmp))

@@ -16,7 +16,7 @@ void clear_visible();
 static void maybe_move_visible_window(Short left_x, Short top_y);
 static void ridiculous_code();
 //static void wormsee(UInt tmp);
-static void xor_directional();
+static void xor_directional();// SEC_5;
 static void print_stats_where();
 
 static Short scrlx, scrhx, scrly, scrhy; /* corners of new area on screen */
@@ -381,7 +381,7 @@ void refresh() // formerly known as docrt()
   Short v_w = itsy_on ? visible_w_itsy : visible_w;
   UChar info;
 
-  if (FrmGetActiveFormID() != MainForm) return; // XXX
+  if (FrmGetActiveFormID() != MainForm) return;
 
   if (you.uswallow) {
     swallowed();
@@ -427,7 +427,7 @@ void nscr()
   Short v_h = itsy_on ? visible_h_itsy : visible_h;
   Short v_w = itsy_on ? visible_w_itsy : visible_w;
 
-  if (FrmGetActiveFormID() != MainForm) return; // XXX
+  if (FrmGetActiveFormID() != MainForm) return;
   // XXX flags.nscrinh is used only in goto_level()  ..will need it though.
   if (you.uswallow || you.ux == FAR /*|| flags.nscrinh*/) return;
 #ifdef I_AM_OS_2
@@ -471,7 +471,7 @@ void animate_char(Short y, Short x, Char c, Boolean bold)
   Short v_h = itsy_on ? visible_h_itsy : visible_h;
   Short v_w = itsy_on ? visible_w_itsy : visible_w;
 
-  if (FrmGetActiveFormID() != MainForm) return; // XXX
+  if (FrmGetActiveFormID() != MainForm) return;
 
   if (y < visible_y || x < visible_x ||
       y >= visible_y + v_h || x >= visible_x + v_w)
@@ -551,7 +551,7 @@ void tmp_at(Int8 x, Int8 y)
 {
   tmp_at_erase(my_ufo.prev.x, my_ufo.prev.y);
   if (cansee(x, y)) {
-    //    WinDrawChars(&my_ufo.let, 1, 10, 10); // XXX debug
+    //    WinDrawChars(&my_ufo.let, 1, 10, 10); // <-- for debugging
     animate_char(y, x, my_ufo.let, false);
   }
   SysTaskDelay(SysTicksPerSecond()/16); // probably a nonoptimal location/delay
@@ -613,7 +613,7 @@ void swallowed()
 {
   // needs testing .... also, find out what this really looks like in unix.
   Short line, col, dy, dx, i = 0;
-  if (FrmGetActiveFormID() != MainForm) return; // XXX
+  if (FrmGetActiveFormID() != MainForm) return;
   clear_visible();
 #ifdef I_AM_OS_2
   if (itsy_on) FntSetFont(ledFont);
@@ -927,8 +927,8 @@ Boolean toggle_itsy()
 
 
 
-Boolean draw_directional_p;
-Boolean undraw_directional_p;
+Boolean draw_directional_p = false;
+Boolean undraw_directional_p = false;
 void draw_directional()
 {
   //  XOR some lines onto the screen
@@ -964,6 +964,8 @@ void undraw_directional()
 }
 static void xor_directional()
 {
+  if (FrmGetActiveFormID() != MainForm) return; // for when you die.
+
   WinInvertLine(0,  40, 60, 70);
   WinInvertLine(100,90,160,120);
   WinInvertLine(0,  120,   60, 90);
@@ -1072,7 +1074,7 @@ void message(const Char *buf)
 
   if (curfrm == InvForm || curfrm == InvActionForm) {
     // These messages should also be printed straightaway.
-    // XXX or maybe I should pop up a message window, like robotfindskitten?
+    // or maybe I should pop up a message window, like robotfindskitten?
     if (!ROBOTFINDSKITTEN) {
       RectangleType r;
       RctSetRectangle(&r,0,128,156,11);
@@ -1155,11 +1157,11 @@ void show_messages()
   //RctSetRectangle(&r,0,134,160,160-134); /* left,top, width and height */
   RctSetRectangle(&r,0,MsgTopY,160,MsgBotY-MsgTopY); /* x,y, W, and H */
 
-  if (curfrm != MainForm && curfrm != SenseForm) { // xxxx adding SenseForm.
+  if (curfrm != MainForm && curfrm != SenseForm) {
     if (ROBOTFINDSKITTEN && (curfrm == InvForm || curfrm == InvActionForm)
 	&& !you.dead) 
       FrmPopupForm(InvMsgForm);
-    return; // XXX otherwise inventory form title is lost
+    return; // otherwise inventory form title is lost
   }
 
   // if there's nothing to print, just print stats.

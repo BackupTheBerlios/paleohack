@@ -90,7 +90,7 @@ void M_eat_done()
 }
 
 
-// XXXX I need a routine to call, when a person asks to 'e'at
+// This is a routine to call, when a person asks to 'e'at
 // some food that is still on the ground and not in inventory....
 Boolean eat_off_floor(Boolean *tried) // was part of doeat
 {
@@ -428,7 +428,7 @@ static Boolean eatcorpse(struct obj *otmp)
     Teleportation |= INTRINSIC;
     break;
   case 'W':
-    //    pluslvl(); // XXX in potion.c
+    pluslvl(); // pluslvl moved to movesee.c
     break;
   case 'n':
     you.uhp = you.uhpmax;
@@ -487,12 +487,16 @@ static Boolean eatcorpse(struct obj *otmp)
   case 'M':
     message("You cannot resist the temptation to mimic a treasure chest.");
     tp = true;
-    // some stuff that is not tested yet...
+    // some stuff that is not tested yet... xxxx does not work yet
     nomul(-30);
-    you.usym = '$';
-    prme();
+    /*    you.usym = GOLD_SYM;// '$';
+          prme(); */
+    //    show_messages();
+    if (!Invisible) animate_char(you.uy, you.ux, GOLD_SYM, false);
+    //    SysTaskDelay(SysTicksPerSecond());
     spin_multi("You now again prefer mimicking a human."); // XXX
-    M_eat_done();
+    //    M_eat_done();
+    if (!Invisible) animate_char(you.uy, you.ux, '@', false);
     break;
   }
   return tp;

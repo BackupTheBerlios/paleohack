@@ -150,11 +150,12 @@
 #define ACT_NAME    13
 #define ACT_DROP    14
 #define ACT_DROPALL 15
-#define ACT_DIP     16
+#define ACT_DIP     16 /* the first half, item to BE dipped */
 #define ACT_THROW   17
 #define ACT_ENGRAVE 18
 #define ACT_CHRISTEN 19
 #define ACT_REFRIGERATE   20 /* but.. this command doesn't have a letter.. */
+#define ACT_DIP_IN   21 /* the second half, prompting for a potion */
 
 // the Engrave form is also used to get strings for these magic effects:
 #define GET_WISH     42

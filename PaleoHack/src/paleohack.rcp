@@ -5,7 +5,7 @@
 
 #include "paleohackRsc.h"
 
-VERSION ID 1 "0.02"
+VERSION ID 1 "0.03"
 
 ICONFAMILY "paleohack.bmp" "" "" "paleohackC.bmp" TRANSPARENT 255 255 255
 SMALLICONFAMILY "paleohackSmall.bmp" "" "" "paleohackSmallC.bmp" TRANSPARENT 255 255 255
@@ -94,12 +94,13 @@ BEGIN
     BEGIN
 	MENUITEM "Preferences "       ID menu_mainPrefs
 	MENUITEM "Font   "            ID menu_mainFont "F"
-	MENUITEM SEPARATOR
-        MENUITEM "Redraw"      ID menu_mainRedraw
-        MENUITEM "Test stuff"  ID menu_mainTest
-        MENUITEM "Wish!"       ID menu_mainWiz1
     END
 END
+//        MENUITEM "Wish! @"       ID menu_mainWiz1
+//	MENUITEM SEPARATOR
+//        MENUITEM "Redraw"      ID menu_mainRedraw
+//        MENUITEM "Test stuff"  ID menu_mainTest
+//
 
 
 FORM ID MapForm AT (0 0 160 160)
@@ -154,7 +155,7 @@ BEGIN
 	TITLE "About PaleoHack"
 	FORMBITMAP AT (8 19) BITMAP bitmap_cat
 	FORMBITMAP AT (98 15) BITMAP bitmap_ph
-	LABEL "PaleoHack v0.02" AUTOID AT (84 40)
+	LABEL "PaleoHack v0.03" AUTOID AT (84 40)
 	LABEL "A port of" AUTOID AT (PrevLeft PrevTop+11)
 	LABEL "Andries Brouwer's" AUTOID AT (PrevLeft PrevTop+11)
 	LABEL "Hack 1.0.3" AUTOID AT (PrevLeft PrevTop+11)
@@ -356,6 +357,15 @@ BEGIN
 END
 
 
+ALERT ID QuitP
+WARNING
+DEFAULTBUTTON 1
+BEGIN
+	TITLE "Quit?"
+	MESSAGE "Are you sure you want to quit?"
+	BUTTON "Ok" "Cancel"
+END
+
 // hm, I bet that 4 buttons WILL NOT FIT.
 // Whoa!  They do, but the last two look a lot like an afterthought.
 // good enough for jazz...
@@ -422,10 +432,19 @@ BEGIN
 	BUTTON "Ok" "Cancel"
 END
 
+ALERT ID TeleMapP
+CONFIRMATION
+DEFAULTBUTTON 1
+BEGIN
+	TITLE "Teleport here?"
+	MESSAGE "Teleport here?  Or cancel and adjust?"
+	BUTTON "Ok" "Cancel"
+END
+
 
 STRING LicenseStr "Hack 1.0.3 is © 1985 Andries Brouwer, Stichting "\
                   "Mathematich Centrum (Amsterdam);\n"\
-                  "PaleoHack v 0.02 is "\
+                  "PaleoHack v 0.03 is "\
                   "© 2001 Andries Brouwer, Stichting "\
                   "Mathematich Centrum, Bridget Spitznagel.\n"\
                   "This game is freeware.  Source is available under the\n"\

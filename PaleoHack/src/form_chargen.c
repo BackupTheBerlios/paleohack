@@ -40,6 +40,7 @@ Boolean Chargen1_Form_HandleEvent(EventPtr e)
   switch (e->eType) {
 
   case frmOpenEvent:
+    you.dead = true; // fix the "exit before creating first character" issue
     frm = FrmGetActiveForm();
     chargen_init_name(frm);
     FrmDrawForm(frm);

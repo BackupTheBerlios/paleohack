@@ -4,12 +4,15 @@
  * Hack 1.0.3 is (C) 1985 Stichting Mathematisch Centrum, Amsterdam  *
  *********************************************************************/
 #include "paleohack.h"
+#include "paleohackRsc.h"
 
 extern previous_state curr_state;
 
 static void vtele() SEC_3;
 static void teleds(Short nux, Short nuy) SEC_3;
 static Boolean teleok(Short x, Short y) SEC_3;
+static void drown_finish() SEC_3;
+extern Short map_mode_teleport;
 
 Int8 maxdlevel = 1;
 
@@ -135,6 +138,7 @@ void do_trap(trap_t *trap) // was dotrap
       }
       break;
     case TELEP_TRAP:
+      map_mode_teleport = TELE_TRAP;
       if (get_trap_once(trap->trap_info)) {
 	deltrap(trap);
 	newsym(you.ux,you.uy);
@@ -271,8 +275,9 @@ void selftouch(Char *arg)
     StrPrintF(ScratchBuffer, "%s touch the dead cockatrice.", arg);
     message(ScratchBuffer);
     message("You turn to stone.");
-    killer = oc_names + objects[uwep->otype].oc_name_offset; // xxx
-    done("died"); // XXX
+    // xxx goes by too fast, at least when reading a glove-destroying scroll.
+    killer = oc_names + objects[uwep->otype].oc_name_offset;
+    done("died");
     return;
   }
 }
@@ -321,52 +326,86 @@ static void vtele()
       y = rund(2) ? croom->ly : croom->hy;
       if (teleok(x,y)) {
 	teleds(x,y);
+	map_mode_teleport = TELE_MAP;
 	return;
       }
     }
   tele();
 }
 
-// XXXX in tele, if you have "Teleport_control" you can choose where to go.
-// gar gar gar.
+// in tele, if you have "Teleport_control" you can choose where to go.
 // similarly, level_tele will let you choose what level to teleport to.
-// I will put these off, because they require UI Frobbing.
-void tele()
+Boolean tele()
 {
   //  Short nux,nuy;
   if (Teleport_control) {
     extern Boolean took_time;
+    extern Short map_mode_teleport;
     //    coord cc;
     took_time = false;
     curr_state.cmd = '\024';
     curr_state.item = NULL;
+    /*
+      // the old technique, which sort of worked, locally:
     curr_state.mode = MODE_GETCELL;
     message("To what position do you want to be teleported?");
+    return false;
+    */
     /* 1: force valid */
     //    cc = getpos(1, "the desired position");
     /* possible extensions: introduce a small error if
        magic power is low; allow transfer to solid rock */
+    // the new whole-dungeon-level technique:
+    if (!map_mode_teleport)
+      map_mode_teleport = TELE_RNDTIMER;
+    FrmPopupForm(MapForm); // this will call do_xy_command for you
+    return false;
   } else {
     tele_finish(0, 0, false);
+    return true;
   }
 }
 
 void tele_finish(Short x, Short y, Boolean controlled)
 {
   Short nux,nuy;
+  Boolean done = false;
 
   if (controlled) {
     if (teleok(x, y)) {
       teleds(x, y);
-      return;
+      done = true; //return;
     }
     message("Sorry ...");
   }
-  do {
-    nux = rnd(DCOLS-1);
-    nuy = rund(DROWS);
-  } while (!teleok(nux, nuy));
-  teleds(nux, nuy);
+  if (!done) {
+    do {
+      nux = rnd(DCOLS-1);
+      nuy = rund(DROWS);
+    } while (!teleok(nux, nuy));
+    teleds(nux, nuy);
+  }
+  // clean up after drowning victims
+  if (map_mode_teleport == TELE_DROWN) {
+    if (get_cell_type(floor_info[(Short) you.ux][(Short) you.uy]) == POOL)
+      drown_finish();
+    // else, after surviving, do we tick or not?  XXXX think about this.
+  }
+  // else, if scroll or command, tick; if random timer, don't tick.
+  // wait hm.
+  // random timer - never tick.
+  // command - tick iff controlled
+  // scroll - tick iff controlled
+  // drown - ???
+  // trap - ???
+  else if (controlled && map_mode_teleport != TELE_RNDTIMER) {
+    extern Boolean took_time;
+    void end_turn_start_turn(); // in main.c
+    took_time = true;
+    end_turn_start_turn(); // XXXX
+  }
+  // finally, reset.
+  map_mode_teleport = TELE_MAP;
 }
 
 void move_visible_window(Short left_x, Short top_y, Boolean center);//display.c
@@ -405,8 +444,12 @@ static Boolean teleok(Short x, Short y)
   /* Note: gold is permitted (because of vaults) */
 }
 
-Boolean dotele()
+// Return 'NO_OP' if user is a moron and we should not take a turn;
+// Return 'DONE' if it took a turn and we need no further user input;
+// Return 'GO_ON' if we need to wait for user input.
+tri_val_t dotele()
 {
+  tri_val_t result;
   if (
 #ifdef WIZARD
       !wizard &&
@@ -414,15 +457,16 @@ Boolean dotele()
       (!Teleportation || you.ulevel < 6 ||
        (you.character_class != CLASS_WIZARD && you.ulevel < 10))) {
     message("You are not able to teleport at will.");
-    return false;
+    return NO_OP;
   }
   if (you.uhunger <= 100 || you.ustr < 6) {
     message("You lack the strength for a teleport spell."); //'lack' was 'miss'
-    return true;
+    return DONE;
   }
-  tele();
+  if (tele()) result = DONE;
+  else result = GO_ON;
   morehungry(100);
-  return true;
+  return result;
 }
 
 void placebc(Boolean attach)
@@ -457,15 +501,7 @@ void unplacebc()
 void level_tele(Short newlevel, Boolean controlled)
 {
   if (controlled) {
-    /* // This is the sort of thing the caller should do:
-    Char buf[BUFSZ];
-
-    do {
-      message("To what level do you want to teleport? [type a number] ");
-      getlin(buf);
-    } while (!digit(buf[0]) && (buf[0] != '-' || !digit(buf[1])));
-    newlevel = atoi(buf);
-    */
+    // caller should already have used the engrave form to get a Number.
   } else {
     newlevel  = 5 + rund(20);	/* 5 - 24 */
     if (dlevel == newlevel) {
@@ -508,6 +544,7 @@ void level_tele(Short newlevel, Boolean controlled)
 
 void drown() // not tested AT ALL yet
 {
+  tri_val_t result;
   message("You fall into a pool!");
   message("You can't swim!");
   if (rund(3) < you.uluck+2) {
@@ -519,13 +556,19 @@ void drown() // not tested AT ALL yet
     /* we should perhaps merge these scrolls ?  */ // if you say so.
     message("You attempt a teleport spell.");	// utcsri!carroll
 
-    dotele();
-    if (get_cell_type(floor_info[(Short) you.ux][(Short) you.uy]) != POOL)
-      return; // reflexively, you teleport and survive!
-
+    map_mode_teleport = TELE_DROWN;
+    result = dotele(); // XXX Does not work right if you have Teleport_control!
+    if (result != GO_ON)
+      if (get_cell_type(floor_info[(Short) you.ux][(Short) you.uy]) != POOL)
+	return; // else keep going to drown_finish.
+    // for the case of GO_ON, we will check cell type in tele_finish,
+    // which will call drown_finish if necessary.
   }
+  drown_finish();
+}
+static void drown_finish()
+{
   message("You drown ...");
   killer = "pool of water";
   done("drowned");
-  return;
 }

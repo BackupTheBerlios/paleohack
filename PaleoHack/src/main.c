@@ -24,7 +24,7 @@ Boolean Version_GE_OS35 = false; // (is OS version >= 3.5)
 Boolean death = false;
 extern Short multi; // living in movesee.c right now..
 extern Short command_count; // in display.c
-
+extern Short map_mode_teleport; // form_map.c
 
 void move_visible_window(Short left_x, Short top_y, Boolean center);//display.c
 
@@ -33,12 +33,12 @@ extern Boolean came_from_generation;
 
 static Boolean count_handler(Char c);
 static Boolean convert_to_dir(Short x, Short y, Short ignore_center);
-static Boolean convert_char_to_dir(Char d);
+//static Boolean convert_char_to_dir(Char d); // made non-static for form_map.c
 static Boolean do_command(Char com_val);
 static Boolean do_inv_command(Char com_val);
 static void do_multi_move();
 static Boolean do_dir_command();
-static Boolean do_xy_command(Short x, Short y);
+//static Boolean do_xy_command(Short x, Short y); // made public for form_map.c
 static Boolean buttonsHandleEvent(EventPtr e);
 static Boolean OpenDatabase(void);
 static Boolean ApplicationHandleEvent(EventPtr e);
@@ -128,7 +128,8 @@ static void convert_arrow_keys(Char *comval)
     *comval = c;
   }
 }
-static Boolean convert_char_to_dir(Char d)
+//static
+Boolean convert_char_to_dir(Char d)
 {
   you.dx = you.dy = 0;
   you.dz = 0; // ???
@@ -189,12 +190,15 @@ void tick()
   //  if (flags.time) flags.botl = 1; // Just to print "%ld" moves in statusbar
   if (you.uhp < 1 && !you.dead) {
     message("You die...");
-    done("died"); // XXX 
+    done("died");
     return;
   }
   if (you.uhp*10 < you.uhpmax)  wail();
   if (you.uhp < you.uhpmax)  regen();
-  if (Teleportation && !rund(85))  tele();
+  if (Teleportation && !rund(85)) {
+    map_mode_teleport = TELE_RNDTIMER;
+    tele();
+  }
   if (Searching && multi >= 0)  do_search();
   gethungry();
   invault();
@@ -216,7 +220,7 @@ void tick()
   if (!flags.mv || Blind) {
     seeobjs(); // really should be called decay_corpses
     seemons();
-    nscr();// XXXXX isn't this redundant?  since I'm calling refresh in tock...
+    nscr();// isn't this redundant?  since I'm calling refresh in tock...
     // on the other hand, after adding nscr, the punishment ball draws properly
   }
   //  if (flags.botl || flags.botlx) bot(); // bot==print_stats...
@@ -239,10 +243,35 @@ void tock()
 // Caller needs to avoid taking a turn after we return..........
 void spin_multi(Char *msg)
 {
+  Boolean animate;
+  Short delay = 0;
+  Short ticks = SysTicksPerSecond();
+  if (you.dead) { multi = 0; return; }
+  animate = (FrmGetActiveFormID() == MainForm);
+
   if (multi < 0) {
+    /* for debugging
+    {
+      Char buf[20];
+      StrPrintF(buf, "%d", multi);
+      WinDrawChars(buf, StrLen(buf), 130, 0);
+    }
+    */
+    if (animate) {
+      show_messages();
+      // calc a per-move delay so that the total added delay is about 1.5 sec.
+      delay = multi > 0 ? multi : 0-multi; // delay = abs(multi).
+      if (delay <= 2) delay = 0; // xxx don't slow down ball-and-chain!
+      else delay = ticks / delay;
+      if (delay > ticks/10) delay /= 2;
+    }
     do {
       tick();
       if (you.dead) { multi = 0; return; }
+      if (animate) {
+	if (delay) SysTaskDelay(delay);
+	refresh();
+      }
     } while (++multi < 0);
     if (!msg)
       message("You can move again.");
@@ -282,7 +311,7 @@ void draw_tombstone();
 Boolean Main_Form_HandleEvent(EventPtr e)
 {
   Boolean handled = false, valid = false;
-  Short tmp_x, tmp_y;
+  Short tmp_x, tmp_y, tmp_multi;
   Char c;
   FormPtr frm;
 
@@ -385,11 +414,13 @@ Boolean Main_Form_HandleEvent(EventPtr e)
     switch (e->eType) {
     case menuEvent:
       MenuEraseStatus(NULL);
+      tmp_multi = multi;
       if (multi > 0) multi = 0;
       switch(e->data.menu.itemID) {
       case menu_mainAbout: FrmPopupForm(AboutForm);   return true;
-      case menu_mainMap:   FrmPopupForm(MapForm);     return true;
       case menu_mainPrefs: FrmPopupForm(PrefsForm);     return true;
+      case menu_mainMap:   
+	map_mode_teleport = TELE_MAP;  FrmPopupForm(MapForm); return true;
       case menu_mainMsgs:
 	msglog_mode = SHOW_MSGLOG;
 	FrmPopupForm(MsgLogForm);
@@ -410,7 +441,8 @@ Boolean Main_Form_HandleEvent(EventPtr e)
       case menu_mainQuit:
 	// need:
 	// use a FrmAlertForm to confirm: "Really quit?".  then call,
-	done("quit");
+	if (0 == FrmAlert(QuitP))
+	  done("quit");
 	// and then goto the TOPTEN form.
 	//	//	FrmGotoForm(Chargen1Form);
 	return true;
@@ -436,7 +468,6 @@ Boolean Main_Form_HandleEvent(EventPtr e)
 	  return true;
 	}
       case menu_mainRedraw:
-	// xxx
 	savelev(dlevel, true);
 	getlev(dlevel, true);
 	move_visible_window(you.ux, you.uy, true);
@@ -463,14 +494,16 @@ Boolean Main_Form_HandleEvent(EventPtr e)
 	  Short cmd;
 	  // MAGIC & MORE MAGIC..
 	  cmd = e->data.menu.itemID - MAGIC_MENU_NUMBER;
+	  multi = tmp_multi;
 	  if (cmd > 0 && cmd < 128)
 	    handled = do_command((Char) cmd);
 	  if (!handled)
-	    if (do_inv_command(cmd))
-	      // will pop up a form!
+	    if (do_inv_command(cmd)) // will pop up a form!
 	      return true;
+	  if (multi > 0) multi = 0;
 	}
-	curr_state.count = /*command_count = */ 0;
+	//	if (multi > 0) multi = 0;
+	//	curr_state.count = /*command_count = */ 0;
 	break;
       }
       handled = true;
@@ -691,7 +724,13 @@ static Boolean do_command(Char com_val)
   case 'Z': /* I'm not sure that ^T will work, even with a keyboard.
 	       ^T is ok as a menu item but keypress doesn't work in POSE.
 	       So I may have to add Z as an alternative for graffitios.  */
-    took_time = dotele();
+    {
+      tri_val_t result;
+      map_mode_teleport = TELE_CMD;
+      result = dotele();
+      if (result == DONE) took_time = true;
+      else took_time = false; // 'NO_OP' or 'GO_ON'
+    }
     return true;
   default:
     handled = false;
@@ -811,6 +850,7 @@ static Boolean do_inv_command(Char com_val)
     FrmPopupForm(InvForm);
     return true;
   case '\015': // ^M "map".  octal 15, decimal 13.
+    map_mode_teleport = TELE_MAP;
     FrmPopupForm(MapForm);
     return true;
   case '^': // identify an adjacent trap in some direction,
@@ -925,7 +965,8 @@ static Boolean do_dir_command()
 // return true if the command was valid/meaningful.
 extern Char plname[PL_NSIZ];
 extern Short engrave_or_what;
-static Boolean do_xy_command(Short x, Short y)
+//static 
+Boolean do_xy_command(Short x, Short y)
 {
   monst_t *mtmp;
   if (curr_state.cmd == -1) return false;
@@ -952,8 +993,11 @@ static Boolean do_xy_command(Short x, Short y)
     }
     break;
   case '\024': // ^T "teleport".  octal 24, decimal 20.
-    took_time = true;
-    tele_finish(x, y, Teleport_control);
+    took_time = true; // xxxxx need false if intrinsic to avoid doubleticks
+    // can't just pass in 'Teleport_control'... Long to Boolean is screwy:
+    tele_finish(x, y, (Teleport_control != 0));
+    message("(poof)");
+    tock();
     break;
   case '/': // 'whatsit'
     // hmmmm how can I get the "thing player sees at x,y"...
@@ -1070,12 +1114,13 @@ static Boolean buttonsHandleEvent(EventPtr e)
       // Act like keyDownEvent in Main_Form_HandleEvent
       if (message_clear(false)) {
 	show_messages();
-	//command_count = 0; // I do need this - it just doesn't exist yet
+	if (multi > 0) multi = 0;
 	return true;
       }
       handled = do_command(command);
       if (!handled)
 	if (do_inv_command(command)) return true;
+      if (multi > 0) multi = 0;
     }
     break;
   }
@@ -1313,6 +1358,7 @@ static void init_handera()
   if (IsVGA) {// If Handera, go to hi res mode
     //    VgaSetScreenMode(screenMode1To1, rotateModeNone);
     //    init_display_size(); // xxx not impl yet
+    // oct2003 I see no reason to support handera anymore anyway
   }
 #endif
 }
@@ -1416,7 +1462,7 @@ static Word StartApplication(void)
   }
   */
   if (found_my_character)
-    FrmGotoForm(MainForm); // XXXXXX test test test test
+    FrmGotoForm(MainForm);
   else
     FrmGotoForm(Chargen1Form);
   

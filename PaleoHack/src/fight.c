@@ -194,8 +194,10 @@ Boolean hit_mon(monst_t *mon, obj_t *obj, Short thrown) // was hmon
       }
     }
     if (mon->data->mlet == 'O' && obj->otype == TWO_HANDED_SWORD &&
-	!StrCompare(ONAME(obj), "Orcrist")) // XXX Orcrist not tested yet
+	!StrCompare(ONAME(obj), "Orcrist")) {
+      //      message("Testing Orcrist on orc"); // Yep seems to work fine
       tmp += rnd(10);
+    }
   } else switch(obj->otype) {
   case HEAVY_IRON_BALL:
     tmp = rnd(25); break;
